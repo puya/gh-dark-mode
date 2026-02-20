@@ -51,6 +51,9 @@ This document records the approach, findings, progress, roadmap, API details, bu
 | Single component | **GHDarkModeComponent**: Params → Util, input **M** (bool), output **Out** (text). |
 | Assembly info | **GHDarkModeInfo** (subclass of `GH_AssemblyInfo`), empty constructor, Name/Version/Description. |
 | Probe logic | `LoadSkin()` → read `canvas_back` → `SaveSkin()`; report via Message, Remark, and **Out**. |
+| Dark theme | `ApplyDarkTheme()` sets all GH_Skin fields (canvas, wires, panel/group, palettes as GH_PaletteStyle(Fill,Edge,Text), ZUI) to VS/Adobe-style dark; then `SaveSkin()`. |
+| Light theme | `ApplyLightTheme()` sets all GH_Skin fields to Grasshopper-style default light (canvas 212,208,199; palettes with light fills and dark text); then `SaveSkin()`. |
+| Mode behavior | **M** = true → dark; **M** = false → light. Theme is applied and saved on each solve; restart Grasshopper (or reopen definition) to see canvas update. |
 | Build script | `scripts/build-and-install.sh`: `dotnet build -c Release`, copy `bin/GHDarkMode.dll` → Libraries as `GHDarkMode.gha`. |
 | SDK compatibility | Reference Rhino app `ref/net48` (Grasshopper, GH_IO, RhinoCommon); fallback NuGet 8.26. |
 | Optional output | **Out** (text) for routing full status to a Panel. |
@@ -60,9 +63,6 @@ This document records the approach, findings, progress, roadmap, API details, bu
 
 | Item | Notes |
 |------|------|
-| Dark theme | Set all `GH_Skin.*` fields to a dark palette (e.g. dark gray canvas, light wires), then call `SaveSkin()`. |
-| Light theme | Set all `GH_Skin.*` fields to Grasshopper default light values (hardcode or load from a default `grasshopper_gui.xml`), then `SaveSkin()`. |
-| Mode input behavior | When **M** is true → apply dark; when false → apply light. Optionally force canvas refresh after SaveSkin (if API allows). |
 | Icons | Optional: 24×24 icon(s) for component and/or assembly. |
 | Packaging (Yak) | Optional: create a .yak package for distribution via Rhino Package Manager (see §6). |
 
@@ -127,7 +127,8 @@ using Grasshopper.GUI.Canvas;
 
 **Palettes** (each has `*_selected` and `*_standard`)
 
-- `palette_normal_*`, `palette_black_*`, `palette_blue_*`, `palette_brown_*`, `palette_error_*`, `palette_grey_*`, `palette_hidden_*`, `palette_locked_*`, `palette_pink_*`, `palette_trans_*`, `palette_warning_*`, `palette_white_*`.
+- Type is **`GH_PaletteStyle`**, not Color. Constructor: **`new GH_PaletteStyle(Fill, Edge, Text)`** (all `System.Drawing.Color`). Properties: `Fill`, `Edge`, `Text`.
+- Fields: `palette_normal_*`, `palette_black_*`, `palette_blue_*`, `palette_brown_*`, `palette_error_*`, `palette_grey_*`, `palette_hidden_*`, `palette_locked_*`, `palette_pink_*`, `palette_trans_*`, `palette_warning_*`, `palette_white_*`.
 
 **ZUI**
 
