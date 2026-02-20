@@ -9,7 +9,7 @@ This document records the approach, findings, progress, roadmap, API details, bu
 - **Name:** GH Dark Mode (repository: GHDarkMode)
 - **Platform:** Rhino 8 for Mac, Grasshopper 1 (not Grasshopper 2)
 - **Purpose:** Toggle Grasshopper’s GUI between **Dark Mode** and **Light Mode** by writing to the same mechanism the Windows plugin [Moonlight](https://food4rhino.com/en/app/moonlight) (by ekimroyrp) uses: the **GH_Skin** API and **grasshopper_gui.xml**.
-- **Status:** Probe phase complete (API verified on Mac). Dark/light theme implementation is next.
+- **Status:** Dark and light themes implemented (apply via GH_Skin and SaveSkin). Some aspects (e.g. grid lines) may not fully come through; see §3.3 for planned improvements (save user theme, grid/layout in dark, skin system).
 
 ---
 
@@ -65,6 +65,36 @@ This document records the approach, findings, progress, roadmap, API details, bu
 |------|------|
 | Icons | Optional: 24×24 icon(s) for component and/or assembly. |
 | Packaging (Yak) | Optional: create a .yak package for distribution via Rhino Package Manager (see §6). |
+| **Save user theme before dark** | See §3.3: read and persist user’s current setup, then restore it for “light” instead of hardcoded light. |
+| **Dark mode: grid and layout** | See §3.3: dark mode should set grid spacing and other non-color settings so they are visible/consistent. |
+| **Skin system** | See §3.3: move from hardcoded values to a skin system (config/serialized themes). |
+
+### 3.3 Planned approach (not yet implemented)
+
+The following behaviour is desired and should be implemented in a future iteration. No code changes are made for these in the current release; this section records the design.
+
+#### 3.3.1 Save user’s setup first; “light” = restore their parameters
+
+- **Do not** define light mode as a fixed set of hardcoded values. Instead:
+  1. **Before applying dark:** Call `GH_Skin.LoadSkin()` to read the user’s **current** Grasshopper GUI state (their theme, custom colours, grid settings, etc.). Persist this state (e.g. to a file in the Grasshopper Settings Folder, or a dedicated backup path such as `ghdarkmode_user_skin.xml` or similar). Then apply the dark theme and call `SaveSkin()`.
+  2. **When reverting to “light”:** Restore the **saved** state (read the persisted file and apply it to `GH_Skin`), then call `SaveSkin()`. The user gets back exactly what they had before (including any customisations), not a built‑in “default” light theme.
+- **Edge cases to consider:** First run (no saved state yet): either treat “light” as no-op / LoadSkin from current `grasshopper_gui.xml`, or save current state on first switch to dark. If the user has never switched to dark, “light” can simply leave the current skin as-is or reload from `grasshopper_gui.xml`.
+
+#### 3.3.2 Dark mode must include grid spacing and other settings
+
+- **Current gap:** Some aspects (e.g. grid lines, grid spacing) may not fully come through because dark mode currently focuses on colours; grid and layout-related fields may need to be set explicitly or kept in sync.
+- **Desired behaviour:** When switching to dark mode, set **all** relevant `GH_Skin` fields that affect the canvas and UI, including:
+  - **Grid:** `canvas_grid`, `canvas_grid_col`, `canvas_grid_row` (and any other grid-related fields in the API).
+  - **Canvas options:** `canvas_mono`, `canvas_mono_color`, `canvas_shade`, `canvas_shade_size`, etc.
+- When saving the user’s theme (§3.3.1), persist these same fields so that restoring “light” also restores their grid spacing and other layout/preference values.
+
+#### 3.3.3 Skin system instead of hardcoded values
+
+- **Current state:** Dark and light themes are implemented by setting `GH_Skin` fields directly in C# with literal colours and values (e.g. `Color.FromArgb(...)`, fixed integers for grid).
+- **Desired state:** Introduce a **skin system** so that themes are data-driven, not hardcoded:
+  - **Definition of themes:** Store each theme (e.g. “dark”, and the saved user theme) as structured data: e.g. a config file (JSON/XML), a small DSL, or a serialisable skin model that lists every `GH_Skin` field (colors, palette Fill/Edge/Text, grid col/row, canvas_mono, shade size, etc.).
+  - **Runtime:** Code loads the active theme from that structure and applies it to `GH_Skin` (e.g. “apply skin from file” or “apply skin from in-memory model”), then calls `SaveSkin()` when persisting. No large blocks of literal `Color.FromArgb(...)` or magic numbers in the component.
+  - **Benefits:** Easier to add new themes, tweak colours/spacing without recompiling, and keep “user’s saved theme” in the same format as built‑in themes (e.g. one file per theme, or one file with named entries).
 
 ---
 
