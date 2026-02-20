@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <RootNamespace>GHDarkMode</RootNamespace>
+    <AssemblyName>GHDarkMode</AssemblyName>
+    <OutputType>Library</OutputType>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
+    <OutputPath>bin\</OutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
+    <!-- Path to Rhino 8 app (Mac). Override with /p:RhinoAppPath=... if your install is elsewhere. -->
+    <RhinoAppPath Condition="'$(RhinoAppPath)' == ''">/Applications/Rhino 8.app</RhinoAppPath>
+    <RhinoRefPath>$(RhinoAppPath)/Contents/Frameworks/RhCore.framework/Versions/A/Resources/ref/net48</RhinoRefPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Reference the Grasshopper SDK from your installed Rhino 8 so the plugin matches your SDK version (e.g. 8.15). -->
+    <Reference Include="Grasshopper" Condition="Exists('$(RhinoRefPath)/Grasshopper.dll')">
+      <HintPath>$(RhinoRefPath)/Grasshopper.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="GH_IO" Condition="Exists('$(RhinoRefPath)/GH_IO.dll')">
+      <HintPath>$(RhinoRefPath)/GH_IO.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RhinoCommon" Condition="Exists('$(RhinoRefPath)/RhinoCommon.dll')">
+      <HintPath>$(RhinoRefPath)/RhinoCommon.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- Fallback to NuGet if Rhino app path is not found (e.g. CI). Use oldest 8.x for broader compatibility. -->
+    <PackageReference Include="Grasshopper" Version="8.26.25349.19001" Condition="!Exists('$(RhinoRefPath)/Grasshopper.dll')" />
+    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
+  </ItemGroup>
+</Project>
