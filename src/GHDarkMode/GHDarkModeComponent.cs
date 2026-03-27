@@ -1,11 +1,18 @@
 /*
  * GH Dark Mode — Toggle Grasshopper GUI between Dark Mode and Light Mode.
- * Tab: Params → Util. Input: M (bool) = true for Dark, false for Light. Out = status message.
+ * Tab: Params → Util.
+ * Inputs:
+ *   - M (bool): true = Dark, false = Light.
+ *   - R (bool): true = reset to factory GUI (delete grasshopper_gui.xml; restart Grasshopper).
+ * Output:
+ *   - Out (text): status message.
  * Uses GH_Skin API and grasshopper_gui.xml; settings persist across sessions.
  */
 
 using System;
 using System.Drawing;
+using System.IO;
+using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.GUI.Canvas;
 
@@ -31,6 +38,7 @@ public class GHDarkModeComponent : GH_Component
     protected override void RegisterInputParams(GH_InputParamManager pManager)
     {
         pManager.AddBooleanParameter("M", "Mode", "True = Dark Mode, False = Light Mode. Use a Button or toggle to apply.", GH_ParamAccess.item, false);
+        pManager.AddBooleanParameter("R", "Reset", "True = reset Grasshopper GUI to factory defaults (deletes grasshopper_gui.xml). Restart Grasshopper after running.", GH_ParamAccess.item, false);
     }
 
     protected override void RegisterOutputParams(GH_OutputParamManager pManager)
@@ -43,6 +51,30 @@ public class GHDarkModeComponent : GH_Component
         bool run = false;
         if (!da.GetData(0, ref run))
             return;
+
+        bool reset = false;
+        // Second input is optional in older definitions; ignore if not present.
+        if (Params.Input.Count > 1)
+            da.GetData(1, ref reset);
+
+        if (reset)
+        {
+            try
+            {
+                string info = ResetToFactory();
+                Message = "Reset";
+                da.SetData(0, $"{info} Grasshopper will recreate factory defaults on next LoadSkin/SaveSkin (usually on restart).");
+            }
+            catch (Exception ex)
+            {
+                string errReset = $"Reset failed: {ex.Message}";
+                Message = "Error";
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Error, errReset);
+                da.SetData(0, errReset);
+            }
+
+            return;
+        }
 
         try
         {
@@ -68,6 +100,36 @@ public class GHDarkModeComponent : GH_Component
             AddRuntimeMessage(GH_RuntimeMessageLevel.Error, err);
             da.SetData(0, err);
         }
+    }
+
+    /// <summary>
+    /// Reset grasshopper_gui.xml and reinitialise GH_Skin to factory defaults
+    /// by deleting the file, then calling LoadSkin/SaveSkin.
+    /// Returns a short info string including the path that was used.
+    /// </summary>
+    private static string ResetToFactory()
+    {
+        string settingsFolder = Folders.SettingsFolder;
+        if (string.IsNullOrWhiteSpace(settingsFolder))
+            throw new InvalidOperationException("Grasshopper settings folder path is empty.");
+
+        string guiPath = Path.Combine(settingsFolder, "grasshopper_gui.xml");
+        bool existed = File.Exists(guiPath);
+
+        if (File.Exists(guiPath))
+        {
+            File.Delete(guiPath);
+        }
+
+        // Reinitialise GH_Skin to its built-in defaults (no gui file present),
+        // then persist those defaults back to a fresh grasshopper_gui.xml.
+        GH_Skin.LoadSkin();
+        GH_Skin.SaveSkin();
+
+        if (existed)
+            return $"Factory reset: deleted and recreated grasshopper_gui.xml at '{guiPath}'.";
+
+        return $"Factory reset: grasshopper_gui.xml did not exist; created fresh defaults at '{guiPath}'.";
     }
 
     /// <summary>Apply dark theme (VS/Adobe-style).</summary>
