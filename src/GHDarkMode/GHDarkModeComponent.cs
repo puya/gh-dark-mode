@@ -50,6 +50,23 @@ public class GHDarkModeComponent : GH_Component
     {
         pManager.AddBooleanParameter("M", "Mode", "True = Dark Mode, False = Light Mode. Use a Button or toggle to apply.", GH_ParamAccess.item, false);
         pManager.AddBooleanParameter("R", "Reset", "True = reset Grasshopper GUI to factory defaults (deletes grasshopper_gui.xml). Restart Grasshopper after running.", GH_ParamAccess.item, false);
+
+        // Optional dark-mode color overrides. If not connected, defaults are used.
+        pManager.AddColourParameter("Background", "BG", "Optional: canvas background color in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Comp Fill", "CF", "Optional: normal component fill color in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Comp Sel Fill", "CSF", "Optional: selected component fill color in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Comp Edge", "CE", "Optional: component outline/edge color in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Comp Name Text", "CNT", "Optional: primary component text color (names/labels) in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Secondary Text", "ST", "Optional: secondary/dim text color in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Comp Sel Text", "CST", "Optional: selected component text color in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Orange Fill", "OF", "Optional: orange component fill in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Orange Sel Fill", "OSF", "Optional: selected orange component fill in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Wire Default", "WD", "Optional: default wire color in dark mode.", GH_ParamAccess.item);
+        pManager.AddColourParameter("Wire Sel In", "WSI", "Optional: selected wire-in color (to selected component).", GH_ParamAccess.item);
+        pManager.AddColourParameter("Wire Sel Out", "WSO", "Optional: selected wire-out color (from selected component).", GH_ParamAccess.item);
+
+        for (int i = 2; i < pManager.ParamCount; i++)
+            pManager[i].Optional = true;
     }
 
     protected override void RegisterOutputParams(GH_OutputParamManager pManager)
@@ -93,17 +110,19 @@ public class GHDarkModeComponent : GH_Component
             // This lets us restore the user's current/factory setup later (light = revert).
             EnsureBaselineSkinSnapshotExists();
 
+            ThemeOverrides overrides = ReadThemeOverrides(da);
+
             if (run)
             {
-                ApplyDarkThemeBasedOnBaseline();
+                ApplyDarkThemeBasedOnBaseline(overrides);
                 Message = "Dark";
-                da.SetData(0, "Dark Mode applied. Restart Grasshopper or reopen the definition to see changes.");
+                da.SetData(0, BuildOverrideSummary("Dark Mode applied.", overrides));
             }
             else
             {
                 RestoreBaselineSkinOrFallbackLight();
                 Message = "Light";
-                da.SetData(0, "Reverted to baseline (pre-dark) skin. Restart Grasshopper or reopen the definition to see changes.");
+                da.SetData(0, BuildOverrideSummary("Reverted to baseline (pre-dark) skin.", overrides));
             }
 
             GH_Skin.SaveSkin();
@@ -186,24 +205,24 @@ public class GHDarkModeComponent : GH_Component
     /// Apply dark theme (VS/Adobe-style), but keep certain non-color values from the baseline.
     /// Currently: grid spacing + canvas shadow sizing + monochrome flag.
     /// </summary>
-    private static void ApplyDarkThemeBasedOnBaseline()
+    private static void ApplyDarkThemeBasedOnBaseline(ThemeOverrides o)
     {
         BaselineCanvasSettings baseline = ReadBaselineCanvasSettingsOrFallback();
 
         // Keep the canvas/background close to GH's dark vibe, but bump contrast slightly for better component readability.
-        Color darkBg = Color.FromArgb(255, 45, 45, 48);      // #2D2D30
+        Color darkBg = o.Background ?? Color.FromArgb(255, 38, 38, 38);
         Color darkBg2 = Color.FromArgb(255, 42, 42, 46);     // slightly lighter than before for a touch more separation
         // Keep gridlines subtle. Baseline grid color uses alpha; preserve that alpha by using a low-A grid tone.
         Color darkGrid = Color.FromArgb(30, 255, 255, 255);
         // Lighter outline so component borders separate better on dark canvas.
-        Color darkEdge = Color.FromArgb(255, 118, 118, 126);
-        Color lightWire = Color.FromArgb(255, 200, 200, 205);
-        Color lightText = Color.FromArgb(255, 235, 235, 235);
-        Color dimText = Color.FromArgb(255, 175, 175, 175);
-        Color selectedInGreen = Color.FromArgb(255, 130, 215, 50);   // match GH light selected green vibe
-        Color selectedOutPurple = Color.FromArgb(255, 170, 120, 235);
+        Color darkEdge = o.ComponentEdge ?? Color.FromArgb(255, 224, 224, 224);
+        Color lightWire = o.WireDefault ?? Color.FromArgb(255, 145, 145, 145);
+        Color lightText = o.ComponentNameText ?? Color.FromArgb(255, 235, 235, 235);
+        Color dimText = o.SecondaryText ?? Color.FromArgb(255, 240, 240, 240);
+        Color selectedInGreen = o.WireSelectedIn ?? Color.FromArgb(255, 130, 215, 50);   // match GH light selected green vibe
+        Color selectedOutPurple = o.WireSelectedOut ?? Color.FromArgb(255, 170, 120, 235);
         Color errorBg = Color.FromArgb(255, 105, 50, 50);
-        Color warnBg = Color.FromArgb(255, 110, 90, 45);
+        Color warnBg = o.OrangeFill ?? Color.FromArgb(255, 199, 86, 0);
 
         // Canvas
         GH_Skin.canvas_back = darkBg;
@@ -229,17 +248,18 @@ public class GHDarkModeComponent : GH_Component
         GH_Skin.wire_selected_b = selectedOutPurple;
 
         // Panel / group
-        GH_Skin.panel_back = darkBg2;
+        // Preserve the baseline panel background so classic yellow panels remain unchanged.
+        GH_Skin.panel_back = baseline.PanelBackColor;
         GH_Skin.group_back = darkBg2;
 
         // Palettes: GH_PaletteStyle(Fill, Edge, Text)
         // Keep selected components clearly green (closer to light-mode selected semantics).
-        Color selEdgeGreen = Color.FromArgb(255, 40, 95, 40);
-        Color selFillGreen = Color.FromArgb(255, 130, 215, 50);
-        Color selTextGreen = Color.FromArgb(255, 15, 35, 10);
+        Color selEdgeGreen = o.ComponentEdge ?? Color.FromArgb(255, 40, 95, 40);
+        Color selFillGreen = o.ComponentSelectedFill ?? Color.FromArgb(255, 108, 168, 19);
+        Color selTextGreen = o.ComponentSelectedText ?? o.ComponentNameText ?? Color.FromArgb(255, 15, 35, 10);
 
-        Color selFill = Color.FromArgb(255, 82, 82, 92);
-        GH_Skin.palette_normal_standard = new GH_PaletteStyle(darkBg2, darkEdge, lightText);
+        Color normalFill = o.ComponentFill ?? darkBg2;
+        GH_Skin.palette_normal_standard = new GH_PaletteStyle(normalFill, darkEdge, lightText);
         GH_Skin.palette_normal_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
         // Give colored palettes a bit more saturation/contrast so they read better on a dark canvas.
@@ -269,7 +289,7 @@ public class GHDarkModeComponent : GH_Component
         GH_Skin.palette_trans_standard = new GH_PaletteStyle(darkBg2, darkEdge, lightText);
         GH_Skin.palette_trans_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
         GH_Skin.palette_warning_standard = new GH_PaletteStyle(warnBg, darkEdge, lightText);
-        GH_Skin.palette_warning_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
+        GH_Skin.palette_warning_selected = new GH_PaletteStyle(o.OrangeSelectedFill ?? selFillGreen, selEdgeGreen, selTextGreen);
 
         GH_Skin.palette_white_standard = new GH_PaletteStyle(Color.FromArgb(255, 70, 70, 78), darkEdge, Color.FromArgb(255, 245, 245, 245));
         GH_Skin.palette_white_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
@@ -379,7 +399,51 @@ public class GHDarkModeComponent : GH_Component
         int GridColumnWidth,
         int GridRowHeight,
         bool IsMonochrome,
-        int ShadowSize);
+        int ShadowSize,
+        Color PanelBackColor);
+
+    private readonly record struct ThemeOverrides(
+        Color? Background,
+        Color? ComponentFill,
+        Color? ComponentSelectedFill,
+        Color? ComponentEdge,
+        Color? ComponentNameText,
+        Color? SecondaryText,
+        Color? ComponentSelectedText,
+        Color? OrangeFill,
+        Color? OrangeSelectedFill,
+        Color? WireDefault,
+        Color? WireSelectedIn,
+        Color? WireSelectedOut);
+
+    private ThemeOverrides ReadThemeOverrides(IGH_DataAccess da)
+    {
+        return new ThemeOverrides(
+            Background: ReadOptionalColor(da, 2),
+            ComponentFill: ReadOptionalColor(da, 3),
+            ComponentSelectedFill: ReadOptionalColor(da, 4),
+            ComponentEdge: ReadOptionalColor(da, 5),
+            ComponentNameText: ReadOptionalColor(da, 6),
+            SecondaryText: ReadOptionalColor(da, 7),
+            ComponentSelectedText: ReadOptionalColor(da, 8),
+            OrangeFill: ReadOptionalColor(da, 9),
+            OrangeSelectedFill: ReadOptionalColor(da, 10),
+            WireDefault: ReadOptionalColor(da, 11),
+            WireSelectedIn: ReadOptionalColor(da, 12),
+            WireSelectedOut: ReadOptionalColor(da, 13));
+    }
+
+    private Color? ReadOptionalColor(IGH_DataAccess da, int index)
+    {
+        if (Params.Input.Count <= index)
+            return null;
+
+        Color c = Color.Empty;
+        if (!da.GetData(index, ref c))
+            return null;
+
+        return c;
+    }
 
     private static BaselineCanvasSettings ReadBaselineCanvasSettingsOrFallback()
     {
@@ -388,7 +452,8 @@ public class GHDarkModeComponent : GH_Component
             GridColumnWidth: 150,
             GridRowHeight: 50,
             IsMonochrome: false,
-            ShadowSize: 30);
+            ShadowSize: 30,
+            PanelBackColor: Color.FromArgb(255, 255, 250, 90));
 
         try
         {
@@ -403,12 +468,14 @@ public class GHDarkModeComponent : GH_Component
             int gridRow = TryReadItemInt(doc, "canvas_rowheight") ?? fallback.GridRowHeight;
             bool mono = TryReadItemBool(doc, "canvas_monochromatic") ?? fallback.IsMonochrome;
             int shadowSize = TryReadItemInt(doc, "canvas_shadowsize") ?? fallback.ShadowSize;
+            Color panelBack = TryReadItemColor(doc, "panel_backcolor") ?? fallback.PanelBackColor;
 
             return new BaselineCanvasSettings(
                 GridColumnWidth: gridCol,
                 GridRowHeight: gridRow,
                 IsMonochrome: mono,
-                ShadowSize: shadowSize);
+                ShadowSize: shadowSize,
+                PanelBackColor: panelBack);
         }
         catch
         {
@@ -447,6 +514,67 @@ public class GHDarkModeComponent : GH_Component
             return value;
 
         return null;
+    }
+
+    private static Color? TryReadItemColor(XDocument doc, string itemName)
+    {
+        XElement? item = FindItemByName(doc, itemName);
+        if (item is null)
+            return null;
+
+        XElement? argb = item.Element("ARGB");
+        if (argb is null)
+            return null;
+
+        string[] parts = (argb.Value ?? string.Empty).Split(';');
+        if (parts.Length != 4)
+            return null;
+
+        if (!byte.TryParse(parts[0], out byte a))
+            return null;
+        if (!byte.TryParse(parts[1], out byte r))
+            return null;
+        if (!byte.TryParse(parts[2], out byte g))
+            return null;
+        if (!byte.TryParse(parts[3], out byte b))
+            return null;
+
+        return Color.FromArgb(a, r, g, b);
+    }
+
+    private static string BuildOverrideSummary(string prefix, ThemeOverrides o)
+    {
+        string[] values =
+        {
+            FormatOverride("BG", o.Background),
+            FormatOverride("CF", o.ComponentFill),
+            FormatOverride("CSF", o.ComponentSelectedFill),
+            FormatOverride("CE", o.ComponentEdge),
+            FormatOverride("CNT", o.ComponentNameText),
+            FormatOverride("ST", o.SecondaryText),
+            FormatOverride("CST", o.ComponentSelectedText),
+            FormatOverride("OF", o.OrangeFill),
+            FormatOverride("OSF", o.OrangeSelectedFill),
+            FormatOverride("WD", o.WireDefault),
+            FormatOverride("WSI", o.WireSelectedIn),
+            FormatOverride("WSO", o.WireSelectedOut),
+        };
+
+        string active = string.Join(", ", values.Where(v => !v.EndsWith("default", StringComparison.Ordinal)));
+        if (string.IsNullOrWhiteSpace(active))
+            active = "none";
+
+        return $"{prefix} Restart Grasshopper or reopen the definition to see changes. Overrides: {active}";
+    }
+
+    private static string FormatOverride(string key, Color? color)
+    {
+        return color is Color c ? $"{key}={FormatColor(c)}" : $"{key}=default";
+    }
+
+    private static string FormatColor(Color c)
+    {
+        return $"rgba({c.R},{c.G},{c.B},{c.A})";
     }
 
     private static class IconFactory
