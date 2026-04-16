@@ -15,7 +15,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
-    <NoWarn>$(NoWarn);CS0618</NoWarn>
+    <!--
+      CA1416 is emitted by platform analyzers because System.Drawing is "Windows-only" in generic .NET.
+      In this plugin we run inside Rhino/Grasshopper on macOS, where these APIs are provided and used widely.
+    -->
+    <NoWarn>$(NoWarn);CS0618;CA1416</NoWarn>
     <!-- Path to Rhino 8 app (Mac). Override with /p:RhinoAppPath=... if your install is elsewhere. -->
     <RhinoAppPath Condition="'$(RhinoAppPath)' == ''">/Applications/Rhino 8.app</RhinoAppPath>
     <RhinoRefPath>$(RhinoAppPath)/Contents/Frameworks/RhCore.framework/Versions/A/Resources/ref/net48</RhinoRefPath>

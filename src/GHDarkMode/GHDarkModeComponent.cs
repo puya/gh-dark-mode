@@ -11,6 +11,7 @@
 
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -42,6 +43,8 @@ public class GHDarkModeComponent : GH_Component
     }
 
     public override Guid ComponentGuid => new Guid("B1C2D3E4-F5A6-4780-BCDE-F12345678901");
+
+    protected override Bitmap Icon => IconFactory.Moon24;
 
     protected override void RegisterInputParams(GH_InputParamManager pManager)
     {
@@ -187,17 +190,18 @@ public class GHDarkModeComponent : GH_Component
     {
         BaselineCanvasSettings baseline = ReadBaselineCanvasSettingsOrFallback();
 
+        // Keep the canvas/background close to GH's dark vibe, but bump contrast slightly for better component readability.
         Color darkBg = Color.FromArgb(255, 45, 45, 48);      // #2D2D30
-        Color darkBg2 = Color.FromArgb(255, 37, 37, 38);     // slightly darker
+        Color darkBg2 = Color.FromArgb(255, 42, 42, 46);     // slightly lighter than before for a touch more separation
         // Keep gridlines subtle. Baseline grid color uses alpha; preserve that alpha by using a low-A grid tone.
         Color darkGrid = Color.FromArgb(30, 255, 255, 255);
         Color darkEdge = Color.FromArgb(255, 62, 62, 66);
-        Color lightWire = Color.FromArgb(255, 180, 180, 180);
-        Color lightText = Color.FromArgb(255, 220, 220, 220);
-        Color dimText = Color.FromArgb(255, 160, 160, 160);
-        Color accent = Color.FromArgb(255, 0, 122, 204);    // blue accent
-        Color errorBg = Color.FromArgb(255, 80, 40, 40);
-        Color warnBg = Color.FromArgb(255, 80, 70, 40);
+        Color lightWire = Color.FromArgb(255, 200, 200, 205);
+        Color lightText = Color.FromArgb(255, 235, 235, 235);
+        Color dimText = Color.FromArgb(255, 175, 175, 175);
+        Color accent = Color.FromArgb(255, 55, 155, 255);    // brighter, slightly more saturated blue
+        Color errorBg = Color.FromArgb(255, 105, 50, 50);
+        Color warnBg = Color.FromArgb(255, 110, 90, 45);
 
         // Canvas
         GH_Skin.canvas_back = darkBg;
@@ -219,37 +223,48 @@ public class GHDarkModeComponent : GH_Component
         GH_Skin.wire_default = lightWire;
         GH_Skin.wire_empty = dimText;
         GH_Skin.wire_selected_a = accent;
-        GH_Skin.wire_selected_b = lightWire;
+        GH_Skin.wire_selected_b = Color.FromArgb(255, 230, 230, 235);
 
         // Panel / group
         GH_Skin.panel_back = darkBg2;
         GH_Skin.group_back = darkBg2;
 
         // Palettes: GH_PaletteStyle(Fill, Edge, Text)
+        Color selFill = Color.FromArgb(255, 70, 70, 78);
         GH_Skin.palette_normal_standard = new GH_PaletteStyle(darkBg2, darkEdge, lightText);
-        GH_Skin.palette_normal_selected = new GH_PaletteStyle(Color.FromArgb(255, 55, 55, 58), darkEdge, lightText);
-        GH_Skin.palette_black_standard = new GH_PaletteStyle(darkBg2, darkEdge, lightText);
-        GH_Skin.palette_black_selected = new GH_PaletteStyle(Color.FromArgb(255, 55, 55, 58), darkEdge, lightText);
-        GH_Skin.palette_blue_standard = new GH_PaletteStyle(Color.FromArgb(255, 40, 50, 70), darkEdge, lightText);
-        GH_Skin.palette_blue_selected = new GH_PaletteStyle(Color.FromArgb(255, 50, 65, 90), darkEdge, lightText);
-        GH_Skin.palette_brown_standard = new GH_PaletteStyle(Color.FromArgb(255, 60, 50, 40), darkEdge, lightText);
-        GH_Skin.palette_brown_selected = new GH_PaletteStyle(Color.FromArgb(255, 80, 65, 50), darkEdge, lightText);
+        GH_Skin.palette_normal_selected = new GH_PaletteStyle(selFill, darkEdge, lightText);
+
+        // Give colored palettes a bit more saturation/contrast so they read better on a dark canvas.
+        GH_Skin.palette_black_standard = new GH_PaletteStyle(Color.FromArgb(255, 52, 52, 56), darkEdge, lightText);
+        GH_Skin.palette_black_selected = new GH_PaletteStyle(Color.FromArgb(255, 78, 78, 84), darkEdge, lightText);
+
+        GH_Skin.palette_blue_standard = new GH_PaletteStyle(Color.FromArgb(255, 55, 75, 120), darkEdge, lightText);
+        GH_Skin.palette_blue_selected = new GH_PaletteStyle(Color.FromArgb(255, 70, 95, 150), darkEdge, lightText);
+
+        GH_Skin.palette_brown_standard = new GH_PaletteStyle(Color.FromArgb(255, 105, 80, 55), darkEdge, lightText);
+        GH_Skin.palette_brown_selected = new GH_PaletteStyle(Color.FromArgb(255, 130, 100, 70), darkEdge, lightText);
         GH_Skin.palette_error_standard = new GH_PaletteStyle(errorBg, darkEdge, lightText);
-        GH_Skin.palette_error_selected = new GH_PaletteStyle(Color.FromArgb(255, 100, 50, 50), darkEdge, lightText);
-        GH_Skin.palette_grey_standard = new GH_PaletteStyle(Color.FromArgb(255, 50, 50, 52), darkEdge, lightText);
-        GH_Skin.palette_grey_selected = new GH_PaletteStyle(Color.FromArgb(255, 65, 65, 68), darkEdge, lightText);
-        GH_Skin.palette_hidden_standard = new GH_PaletteStyle(Color.FromArgb(255, 42, 42, 44), darkEdge, dimText);
-        GH_Skin.palette_hidden_selected = new GH_PaletteStyle(Color.FromArgb(255, 52, 52, 55), darkEdge, lightText);
-        GH_Skin.palette_locked_standard = new GH_PaletteStyle(Color.FromArgb(255, 48, 48, 50), darkEdge, dimText);
-        GH_Skin.palette_locked_selected = new GH_PaletteStyle(Color.FromArgb(255, 58, 58, 60), darkEdge, lightText);
-        GH_Skin.palette_pink_standard = new GH_PaletteStyle(Color.FromArgb(255, 70, 45, 60), darkEdge, lightText);
-        GH_Skin.palette_pink_selected = new GH_PaletteStyle(Color.FromArgb(255, 90, 60, 80), darkEdge, lightText);
-        GH_Skin.palette_trans_standard = new GH_PaletteStyle(darkBg, darkEdge, lightText);
-        GH_Skin.palette_trans_selected = new GH_PaletteStyle(Color.FromArgb(255, 55, 55, 58), darkEdge, lightText);
+        GH_Skin.palette_error_selected = new GH_PaletteStyle(Color.FromArgb(255, 135, 60, 60), darkEdge, lightText);
+
+        GH_Skin.palette_grey_standard = new GH_PaletteStyle(Color.FromArgb(255, 62, 62, 68), darkEdge, lightText);
+        GH_Skin.palette_grey_selected = new GH_PaletteStyle(Color.FromArgb(255, 86, 86, 94), darkEdge, lightText);
+
+        GH_Skin.palette_hidden_standard = new GH_PaletteStyle(Color.FromArgb(255, 52, 52, 56), darkEdge, dimText);
+        GH_Skin.palette_hidden_selected = new GH_PaletteStyle(Color.FromArgb(255, 72, 72, 78), darkEdge, lightText);
+
+        GH_Skin.palette_locked_standard = new GH_PaletteStyle(Color.FromArgb(255, 56, 56, 60), darkEdge, dimText);
+        GH_Skin.palette_locked_selected = new GH_PaletteStyle(Color.FromArgb(255, 76, 76, 82), darkEdge, lightText);
+
+        GH_Skin.palette_pink_standard = new GH_PaletteStyle(Color.FromArgb(255, 120, 70, 105), darkEdge, lightText);
+        GH_Skin.palette_pink_selected = new GH_PaletteStyle(Color.FromArgb(255, 150, 85, 125), darkEdge, lightText);
+
+        GH_Skin.palette_trans_standard = new GH_PaletteStyle(darkBg2, darkEdge, lightText);
+        GH_Skin.palette_trans_selected = new GH_PaletteStyle(selFill, darkEdge, lightText);
         GH_Skin.palette_warning_standard = new GH_PaletteStyle(warnBg, darkEdge, lightText);
-        GH_Skin.palette_warning_selected = new GH_PaletteStyle(Color.FromArgb(255, 90, 80, 50), darkEdge, lightText);
-        GH_Skin.palette_white_standard = new GH_PaletteStyle(Color.FromArgb(255, 58, 58, 60), darkEdge, lightText);
-        GH_Skin.palette_white_selected = new GH_PaletteStyle(Color.FromArgb(255, 70, 70, 73), darkEdge, lightText);
+        GH_Skin.palette_warning_selected = new GH_PaletteStyle(Color.FromArgb(255, 140, 110, 55), darkEdge, lightText);
+
+        GH_Skin.palette_white_standard = new GH_PaletteStyle(Color.FromArgb(255, 70, 70, 78), darkEdge, Color.FromArgb(255, 245, 245, 245));
+        GH_Skin.palette_white_selected = new GH_PaletteStyle(Color.FromArgb(255, 95, 95, 105), darkEdge, Color.FromArgb(255, 250, 250, 250));
 
         // ZUI
         GH_Skin.zui_edge = darkEdge;
@@ -424,5 +439,44 @@ public class GHDarkModeComponent : GH_Component
             return value;
 
         return null;
+    }
+
+    private static class IconFactory
+    {
+        // Grasshopper expects a small (typically 24×24) bitmap for component icons.
+        // We generate it programmatically to avoid external assets and to keep the repo lightweight.
+        public static readonly Bitmap Moon24 = CreateMoonIcon24();
+
+        private static Bitmap CreateMoonIcon24()
+        {
+            const int size = 24;
+            Bitmap bmp = new(size, size);
+
+            using Graphics g = Graphics.FromImage(bmp);
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Color.Transparent);
+
+            // Lucide-style crescent: draw a filled circle, then subtract a slightly offset circle.
+            Rectangle outer = new(3, 3, 18, 18);
+            using GraphicsPath path = new();
+            path.AddEllipse(outer);
+
+            // "Cut out" circle
+            Rectangle cut = new(8, 2, 18, 18);
+            using GraphicsPath cutPath = new();
+            cutPath.AddEllipse(cut);
+
+            using Region r = new(path);
+            r.Exclude(cutPath);
+
+            using SolidBrush brush = new(Color.FromArgb(255, 240, 240, 240));
+            g.FillRegion(brush, r);
+
+            // Subtle outline to read well on both light and dark component backgrounds.
+            using Pen pen = new(Color.FromArgb(120, 0, 0, 0), 1);
+            g.DrawPath(pen, path);
+
+            return bmp;
+        }
     }
 }
