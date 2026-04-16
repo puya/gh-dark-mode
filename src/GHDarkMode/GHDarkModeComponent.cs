@@ -195,11 +195,13 @@ public class GHDarkModeComponent : GH_Component
         Color darkBg2 = Color.FromArgb(255, 42, 42, 46);     // slightly lighter than before for a touch more separation
         // Keep gridlines subtle. Baseline grid color uses alpha; preserve that alpha by using a low-A grid tone.
         Color darkGrid = Color.FromArgb(30, 255, 255, 255);
-        Color darkEdge = Color.FromArgb(255, 62, 62, 66);
+        // Lighter outline so component borders separate better on dark canvas.
+        Color darkEdge = Color.FromArgb(255, 118, 118, 126);
         Color lightWire = Color.FromArgb(255, 200, 200, 205);
         Color lightText = Color.FromArgb(255, 235, 235, 235);
         Color dimText = Color.FromArgb(255, 175, 175, 175);
-        Color accent = Color.FromArgb(255, 55, 155, 255);    // brighter, slightly more saturated blue
+        Color selectedInGreen = Color.FromArgb(255, 130, 215, 50);   // match GH light selected green vibe
+        Color selectedOutPurple = Color.FromArgb(255, 170, 120, 235);
         Color errorBg = Color.FromArgb(255, 105, 50, 50);
         Color warnBg = Color.FromArgb(255, 110, 90, 45);
 
@@ -222,49 +224,55 @@ public class GHDarkModeComponent : GH_Component
         // Wires
         GH_Skin.wire_default = lightWire;
         GH_Skin.wire_empty = dimText;
-        GH_Skin.wire_selected_a = accent;
-        GH_Skin.wire_selected_b = Color.FromArgb(255, 230, 230, 235);
+        // Requested selected-wire behavior: green entering selected component, purple leaving it.
+        GH_Skin.wire_selected_a = selectedInGreen;
+        GH_Skin.wire_selected_b = selectedOutPurple;
 
         // Panel / group
         GH_Skin.panel_back = darkBg2;
         GH_Skin.group_back = darkBg2;
 
         // Palettes: GH_PaletteStyle(Fill, Edge, Text)
-        Color selFill = Color.FromArgb(255, 70, 70, 78);
+        // Keep selected components clearly green (closer to light-mode selected semantics).
+        Color selEdgeGreen = Color.FromArgb(255, 40, 95, 40);
+        Color selFillGreen = Color.FromArgb(255, 130, 215, 50);
+        Color selTextGreen = Color.FromArgb(255, 15, 35, 10);
+
+        Color selFill = Color.FromArgb(255, 82, 82, 92);
         GH_Skin.palette_normal_standard = new GH_PaletteStyle(darkBg2, darkEdge, lightText);
-        GH_Skin.palette_normal_selected = new GH_PaletteStyle(selFill, darkEdge, lightText);
+        GH_Skin.palette_normal_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
         // Give colored palettes a bit more saturation/contrast so they read better on a dark canvas.
-        GH_Skin.palette_black_standard = new GH_PaletteStyle(Color.FromArgb(255, 52, 52, 56), darkEdge, lightText);
-        GH_Skin.palette_black_selected = new GH_PaletteStyle(Color.FromArgb(255, 78, 78, 84), darkEdge, lightText);
+        GH_Skin.palette_black_standard = new GH_PaletteStyle(Color.FromArgb(255, 60, 60, 66), darkEdge, lightText);
+        GH_Skin.palette_black_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
-        GH_Skin.palette_blue_standard = new GH_PaletteStyle(Color.FromArgb(255, 55, 75, 120), darkEdge, lightText);
-        GH_Skin.palette_blue_selected = new GH_PaletteStyle(Color.FromArgb(255, 70, 95, 150), darkEdge, lightText);
+        GH_Skin.palette_blue_standard = new GH_PaletteStyle(Color.FromArgb(255, 75, 110, 180), darkEdge, Color.FromArgb(255, 245, 248, 255));
+        GH_Skin.palette_blue_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
-        GH_Skin.palette_brown_standard = new GH_PaletteStyle(Color.FromArgb(255, 105, 80, 55), darkEdge, lightText);
-        GH_Skin.palette_brown_selected = new GH_PaletteStyle(Color.FromArgb(255, 130, 100, 70), darkEdge, lightText);
+        GH_Skin.palette_brown_standard = new GH_PaletteStyle(Color.FromArgb(255, 145, 98, 62), darkEdge, Color.FromArgb(255, 255, 245, 230));
+        GH_Skin.palette_brown_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
         GH_Skin.palette_error_standard = new GH_PaletteStyle(errorBg, darkEdge, lightText);
-        GH_Skin.palette_error_selected = new GH_PaletteStyle(Color.FromArgb(255, 135, 60, 60), darkEdge, lightText);
+        GH_Skin.palette_error_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
-        GH_Skin.palette_grey_standard = new GH_PaletteStyle(Color.FromArgb(255, 62, 62, 68), darkEdge, lightText);
-        GH_Skin.palette_grey_selected = new GH_PaletteStyle(Color.FromArgb(255, 86, 86, 94), darkEdge, lightText);
+        GH_Skin.palette_grey_standard = new GH_PaletteStyle(Color.FromArgb(255, 74, 74, 82), darkEdge, lightText);
+        GH_Skin.palette_grey_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
-        GH_Skin.palette_hidden_standard = new GH_PaletteStyle(Color.FromArgb(255, 52, 52, 56), darkEdge, dimText);
-        GH_Skin.palette_hidden_selected = new GH_PaletteStyle(Color.FromArgb(255, 72, 72, 78), darkEdge, lightText);
+        GH_Skin.palette_hidden_standard = new GH_PaletteStyle(Color.FromArgb(255, 64, 64, 72), darkEdge, dimText);
+        GH_Skin.palette_hidden_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
-        GH_Skin.palette_locked_standard = new GH_PaletteStyle(Color.FromArgb(255, 56, 56, 60), darkEdge, dimText);
-        GH_Skin.palette_locked_selected = new GH_PaletteStyle(Color.FromArgb(255, 76, 76, 82), darkEdge, lightText);
+        GH_Skin.palette_locked_standard = new GH_PaletteStyle(Color.FromArgb(255, 68, 68, 74), darkEdge, dimText);
+        GH_Skin.palette_locked_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
-        GH_Skin.palette_pink_standard = new GH_PaletteStyle(Color.FromArgb(255, 120, 70, 105), darkEdge, lightText);
-        GH_Skin.palette_pink_selected = new GH_PaletteStyle(Color.FromArgb(255, 150, 85, 125), darkEdge, lightText);
+        GH_Skin.palette_pink_standard = new GH_PaletteStyle(Color.FromArgb(255, 188, 82, 150), darkEdge, Color.FromArgb(255, 255, 240, 252));
+        GH_Skin.palette_pink_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
         GH_Skin.palette_trans_standard = new GH_PaletteStyle(darkBg2, darkEdge, lightText);
-        GH_Skin.palette_trans_selected = new GH_PaletteStyle(selFill, darkEdge, lightText);
+        GH_Skin.palette_trans_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
         GH_Skin.palette_warning_standard = new GH_PaletteStyle(warnBg, darkEdge, lightText);
-        GH_Skin.palette_warning_selected = new GH_PaletteStyle(Color.FromArgb(255, 140, 110, 55), darkEdge, lightText);
+        GH_Skin.palette_warning_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
         GH_Skin.palette_white_standard = new GH_PaletteStyle(Color.FromArgb(255, 70, 70, 78), darkEdge, Color.FromArgb(255, 245, 245, 245));
-        GH_Skin.palette_white_selected = new GH_PaletteStyle(Color.FromArgb(255, 95, 95, 105), darkEdge, Color.FromArgb(255, 250, 250, 250));
+        GH_Skin.palette_white_selected = new GH_PaletteStyle(selFillGreen, selEdgeGreen, selTextGreen);
 
         // ZUI
         GH_Skin.zui_edge = darkEdge;
