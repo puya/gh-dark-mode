@@ -6,6 +6,8 @@
 # Build outputs (C# / .NET)
 **/bin/
 **/obj/
+build/
+dist/
 *.dll
 *.pdb
 *.gha

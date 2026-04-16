@@ -26,7 +26,12 @@ Grasshopper 1 plugin for **Mac** that toggles the Grasshopper GUI between **Dark
 3. **Restart Rhino and Grasshopper.** Find **Params → Util → GH Dark Mode**.
 4. **Use:** Connect a Boolean or Button to input **M**. Set **M** true to run. Route output **Out** to a Panel to see the full status message.
 
-The plugin **toggles the canvas and component colors**: set **M** = true for Dark Mode, **M** = false for Light Mode. Settings persist via `grasshopper_gui.xml`. You may need to **restart Grasshopper** (or close and reopen the definition) for the canvas to refresh after switching.
+The plugin **toggles the canvas and component colors**:
+
+- **M = true**: apply Dark Mode.
+- **M = false**: restore the **baseline** skin snapshot (what you had before first running the component).
+
+Settings persist via `grasshopper_gui.xml`. On first run, the plugin creates a baseline snapshot file `ghdarkmode_baseline_gui.xml` in the Grasshopper settings folder to enable reliable restore/reset. You may need to **restart Grasshopper** (or close and reopen the definition) for the canvas to refresh after switching.
 
 ---
 

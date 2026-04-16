@@ -53,7 +53,7 @@ This document records the approach, findings, progress, roadmap, API details, bu
 | Probe logic | `LoadSkin()` → read `canvas_back` → `SaveSkin()`; report via Message, Remark, and **Out**. |
 | Dark theme | `ApplyDarkTheme()` sets all GH_Skin fields (canvas, wires, panel/group, palettes as GH_PaletteStyle(Fill,Edge,Text), ZUI) to VS/Adobe-style dark; then `SaveSkin()`. |
 | Light theme | `ApplyLightTheme()` sets all GH_Skin fields to Grasshopper-style default light (canvas 212,208,199; palettes with light fills and dark text); then `SaveSkin()`. |
-| Mode behavior | **M** = true → dark; **M** = false → light. Theme is applied and saved on each solve; restart Grasshopper (or reopen definition) to see canvas update. |
+| Mode behavior | **M** = true → apply dark; **M** = false → restore baseline (pre-dark) skin. Theme is applied and saved on each solve; restart Grasshopper (or reopen definition) to see canvas update. |
 | Build script | `scripts/build-and-install.sh`: `dotnet build -c Release`, copy `bin/GHDarkMode.dll` → Libraries as `GHDarkMode.gha`. |
 | SDK compatibility | Reference Rhino app `ref/net48` (Grasshopper, GH_IO, RhinoCommon); fallback NuGet 8.26. |
 | Optional output | **Out** (text) for routing full status to a Panel. |
@@ -65,7 +65,7 @@ This document records the approach, findings, progress, roadmap, API details, bu
 |------|------|
 | Icons | Optional: 24×24 icon(s) for component and/or assembly. |
 | Packaging (Yak) | Optional: create a .yak package for distribution via Rhino Package Manager (see §6). |
-| **Save user theme before dark** | See §3.3: read and persist user’s current setup, then restore it for “light” instead of hardcoded light. |
+| **Save user theme before dark** | Implemented in baseline snapshot form: on first run, the plugin copies `grasshopper_gui.xml` to `ghdarkmode_baseline_gui.xml` and uses it as the restore target when switching back to “light”. |
 | **Dark mode: grid and layout** | See §3.3: dark mode should set grid spacing and other non-color settings so they are visible/consistent. |
 | **Skin system** | See §3.3: move from hardcoded values to a skin system (config/serialized themes). |
 
@@ -75,14 +75,14 @@ The following behaviour is desired and should be implemented in a future iterati
 
 #### 3.3.1 Save user’s setup first; “light” = restore their parameters
 
-- **Do not** define light mode as a fixed set of hardcoded values. Instead:
-  1. **Before applying dark:** Call `GH_Skin.LoadSkin()` to read the user’s **current** Grasshopper GUI state (their theme, custom colours, grid settings, etc.). Persist this state (e.g. to a file in the Grasshopper Settings Folder, or a dedicated backup path such as `ghdarkmode_user_skin.xml` or similar). Then apply the dark theme and call `SaveSkin()`.
-  2. **When reverting to “light”:** Restore the **saved** state (read the persisted file and apply it to `GH_Skin`), then call `SaveSkin()`. The user gets back exactly what they had before (including any customisations), not a built‑in “default” light theme.
+- This is now implemented using a baseline snapshot file:
+  1. **On first run:** Ensure `grasshopper_gui.xml` exists (create it from defaults if needed), then copy it to `ghdarkmode_baseline_gui.xml`.
+  2. **When reverting to “light”:** Copy `ghdarkmode_baseline_gui.xml` back onto `grasshopper_gui.xml`, then `LoadSkin()` and `SaveSkin()`.
 - **Edge cases to consider:** First run (no saved state yet): either treat “light” as no-op / LoadSkin from current `grasshopper_gui.xml`, or save current state on first switch to dark. If the user has never switched to dark, “light” can simply leave the current skin as-is or reload from `grasshopper_gui.xml`.
 
 #### 3.3.2 Dark mode must include grid spacing and other settings
 
-- **Current gap:** Some aspects (e.g. grid lines, grid spacing) may not fully come through because dark mode currently focuses on colours; grid and layout-related fields may need to be set explicitly or kept in sync.
+- **Current state:** Dark mode sets colours explicitly, and also keeps grid spacing consistent by reading `canvas_grid_col` and `canvas_grid_row` from `ghdarkmode_baseline_gui.xml` and applying them.
 - **Desired behaviour:** When switching to dark mode, set **all** relevant `GH_Skin` fields that affect the canvas and UI, including:
   - **Grid:** `canvas_grid`, `canvas_grid_col`, `canvas_grid_row` (and any other grid-related fields in the API).
   - **Canvas options:** `canvas_mono`, `canvas_mono_color`, `canvas_shade`, `canvas_shade_size`, etc.
@@ -180,6 +180,11 @@ Full list: [GH_Skin Class](https://developer.rhino3d.com/api/grasshopper/html/T_
 
 ## 5. Build and install (current)
 
+### 5.0 Build outputs vs distributables
+
+- **`build/`**: build outputs (compiled assemblies + intermediate files). This replaces the default `src/**/bin` and `src/**/obj`.
+- **`dist/`**: distributable artifacts you share/install (currently: `dist/GHDarkMode.gha`).
+
 ### 5.1 Prerequisites
 
 - .NET 7 SDK (or later); Rhino 8 for Mac with Grasshopper 1.
@@ -192,17 +197,30 @@ Full list: [GH_Skin Class](https://developer.rhino3d.com/api/grasshopper/html/T_
 ./scripts/build-and-install.sh
 ```
 
+If you only want a distributable build artifact (no install), run:
+
+```bash
+./scripts/build.sh
+```
+
 The script:
 
 1. Finds `dotnet` (PATH or `/usr/local/share/dotnet`, `/opt/homebrew/share/dotnet`).
 2. Runs `dotnet build -c Release` in `src/GHDarkMode`.
-3. Copies `src/GHDarkMode/bin/GHDarkMode.dll` to the Libraries folder as **`GHDarkMode.gha`**.
-4. Removes any `GHDarkMode.dll` from Libraries.
+3. Creates a distributable artifact at `dist/GHDarkMode.gha`.
+4. Copies `dist/GHDarkMode.gha` to the Libraries folder as **`GHDarkMode.gha`**.
+5. Removes any `GHDarkMode.dll` from Libraries.
 
-**Libraries path (hardcoded in script):**
+**Libraries path (auto-detected):**
 
 ```
-/Users/puya/Library/Application Support/McNeel/Rhinoceros/8.0/Plug-ins/Grasshopper (b45a29b1-4343-4035-989e-044e8580d9cf)/Libraries
+~/Library/Application Support/McNeel/Rhinoceros/8.0/Plug-ins/Grasshopper*/Libraries
+```
+
+**Override Libraries path (if auto-detect fails or you have multiple installs):**
+
+```bash
+GH_LIBRARIES="/path/to/Libraries" ./scripts/build-and-install.sh
 ```
 
 ### 5.3 Custom Rhino path
@@ -222,6 +240,8 @@ Then copy `bin/GHDarkMode.dll` to Libraries as `GHDarkMode.gha` manually or by a
 | `src/GHDarkMode/GHDarkModeInfo.cs` | Assembly metadata (GH_AssemblyInfo). |
 | `src/GHDarkMode/GHDarkModeComponent.cs` | Single component: M (input), Out (output), SolveInstance (probe or future theme logic). |
 | `src/GHDarkMode.sln` | Solution (optional). |
+| `dist/GHDarkMode.gha` | Built distributable artifact (output of `scripts/build.sh` / `scripts/build-and-install.sh`). |
+| `scripts/build.sh` | Build and write `dist/GHDarkMode.gha` (no install). |
 | `scripts/build-and-install.sh` | Build + install to Libraries. |
 
 ---

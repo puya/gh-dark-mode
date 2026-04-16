@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!--
+    Centralize build outputs at the repo root.
+    - build/ contains intermediate + compiled outputs (instead of src/**/bin and src/**/obj)
+    - dist/ contains distributable artifacts (.gha)
+
+    Important: these properties must be set *before* MSBuild imports common props/targets,
+    so we put them in Directory.Build.props (imported early) rather than inside a .csproj.
+  -->
+  <PropertyGroup>
+    <OutputPath>$(MSBuildThisFileDirectory)build/</OutputPath>
+    <!-- Put intermediates under build/obj/<ProjectName>/ to avoid collisions and to keep NuGet/MSBuild consistent. -->
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)build/obj/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
+    <IntermediateOutputPath>$(MSBuildProjectExtensionsPath)</IntermediateOutputPath>
+  </PropertyGroup>
+</Project>
+

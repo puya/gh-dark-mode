@@ -12,6 +12,8 @@
 using System;
 using System.Drawing;
 using System.IO;
+using System.Linq;
+using System.Xml.Linq;
 using Grasshopper;
 using Grasshopper.Kernel;
 using Grasshopper.GUI.Canvas;
@@ -23,6 +25,12 @@ namespace GHDarkMode;
 /// </summary>
 public class GHDarkModeComponent : GH_Component
 {
+    /// <summary>
+    /// Baseline skin backup file name.
+    /// Stored in the Grasshopper settings folder alongside grasshopper_gui.xml.
+    /// </summary>
+    private const string BaselineSkinFileName = "ghdarkmode_baseline_gui.xml";
+
     public GHDarkModeComponent()
         : base(
             name: "GH Dark Mode",
@@ -61,9 +69,9 @@ public class GHDarkModeComponent : GH_Component
         {
             try
             {
-                string info = ResetToFactory();
+                string info = ResetOrRestoreBaseline();
                 Message = "Reset";
-                da.SetData(0, $"{info} Grasshopper will recreate factory defaults on next LoadSkin/SaveSkin (usually on restart).");
+                da.SetData(0, $"{info} Restart Grasshopper to ensure all UI elements refresh.");
             }
             catch (Exception ex)
             {
@@ -78,17 +86,21 @@ public class GHDarkModeComponent : GH_Component
 
         try
         {
+            // Ensure we have a baseline skin snapshot before we modify anything.
+            // This lets us restore the user's current/factory setup later (light = revert).
+            EnsureBaselineSkinSnapshotExists();
+
             if (run)
             {
-                ApplyDarkTheme();
+                ApplyDarkThemeBasedOnBaseline();
                 Message = "Dark";
                 da.SetData(0, "Dark Mode applied. Restart Grasshopper or reopen the definition to see changes.");
             }
             else
             {
-                ApplyLightTheme();
+                RestoreBaselineSkinOrFallbackLight();
                 Message = "Light";
-                da.SetData(0, "Light Mode applied. Restart Grasshopper or reopen the definition to see changes.");
+                da.SetData(0, "Reverted to baseline (pre-dark) skin. Restart Grasshopper or reopen the definition to see changes.");
             }
 
             GH_Skin.SaveSkin();
@@ -103,26 +115,53 @@ public class GHDarkModeComponent : GH_Component
     }
 
     /// <summary>
-    /// Reset grasshopper_gui.xml and reinitialise GH_Skin to factory defaults
-    /// by deleting the file, then calling LoadSkin/SaveSkin.
-    /// Returns a short info string including the path that was used.
+    /// Ensure a baseline skin snapshot exists.
+    /// Baseline is "whatever the user had when this component first ran" (could be factory defaults or a custom theme).
     /// </summary>
-    private static string ResetToFactory()
+    private static void EnsureBaselineSkinSnapshotExists()
     {
-        string settingsFolder = Folders.SettingsFolder;
-        if (string.IsNullOrWhiteSpace(settingsFolder))
-            throw new InvalidOperationException("Grasshopper settings folder path is empty.");
+        string settingsFolder = GetSettingsFolderOrThrow();
+        string baselinePath = Path.Combine(settingsFolder, BaselineSkinFileName);
+        if (File.Exists(baselinePath))
+            return;
 
         string guiPath = Path.Combine(settingsFolder, "grasshopper_gui.xml");
-        bool existed = File.Exists(guiPath);
 
-        if (File.Exists(guiPath))
+        // Make sure GH_Skin has a current state; if grasshopper_gui.xml is missing,
+        // SaveSkin will create it from built-in defaults.
+        GH_Skin.LoadSkin();
+        if (!File.Exists(guiPath))
+            GH_Skin.SaveSkin();
+
+        if (!File.Exists(guiPath))
+            throw new IOException($"Expected '{guiPath}' to exist after LoadSkin/SaveSkin, but it does not.");
+
+        File.Copy(guiPath, baselinePath);
+    }
+
+    /// <summary>
+    /// Reset behavior:
+    /// - If a baseline snapshot exists, restore it (preferred).
+    /// - Otherwise reset to factory defaults by deleting grasshopper_gui.xml.
+    /// </summary>
+    private static string ResetOrRestoreBaseline()
+    {
+        string settingsFolder = GetSettingsFolderOrThrow();
+        string guiPath = Path.Combine(settingsFolder, "grasshopper_gui.xml");
+        string baselinePath = Path.Combine(settingsFolder, BaselineSkinFileName);
+
+        if (File.Exists(baselinePath))
         {
-            File.Delete(guiPath);
+            File.Copy(baselinePath, guiPath, overwrite: true);
+            GH_Skin.LoadSkin();
+            GH_Skin.SaveSkin();
+            return $"Restored baseline skin from '{baselinePath}'.";
         }
 
-        // Reinitialise GH_Skin to its built-in defaults (no gui file present),
-        // then persist those defaults back to a fresh grasshopper_gui.xml.
+        bool existed = File.Exists(guiPath);
+        if (existed)
+            File.Delete(guiPath);
+
         GH_Skin.LoadSkin();
         GH_Skin.SaveSkin();
 
@@ -132,9 +171,22 @@ public class GHDarkModeComponent : GH_Component
         return $"Factory reset: grasshopper_gui.xml did not exist; created fresh defaults at '{guiPath}'.";
     }
 
-    /// <summary>Apply dark theme (VS/Adobe-style).</summary>
-    private static void ApplyDarkTheme()
+    private static string GetSettingsFolderOrThrow()
     {
+        string settingsFolder = Folders.SettingsFolder;
+        if (string.IsNullOrWhiteSpace(settingsFolder))
+            throw new InvalidOperationException("Grasshopper settings folder path is empty.");
+        return settingsFolder;
+    }
+
+    /// <summary>
+    /// Apply dark theme (VS/Adobe-style), but keep certain non-color values from the baseline.
+    /// Currently: grid spacing (canvas_grid_col / canvas_grid_row).
+    /// </summary>
+    private static void ApplyDarkThemeBasedOnBaseline()
+    {
+        (int gridCol, int gridRow) = ReadBaselineGridSpacingOrFallback();
+
         Color darkBg = Color.FromArgb(255, 45, 45, 48);      // #2D2D30
         Color darkBg2 = Color.FromArgb(255, 37, 37, 38);     // slightly darker
         Color darkGrid = Color.FromArgb(255, 60, 60, 63);
@@ -150,8 +202,8 @@ public class GHDarkModeComponent : GH_Component
         GH_Skin.canvas_back = darkBg;
         GH_Skin.canvas_edge = darkEdge;
         GH_Skin.canvas_grid = darkGrid;
-        GH_Skin.canvas_grid_col = 50;
-        GH_Skin.canvas_grid_row = 50;
+        GH_Skin.canvas_grid_col = gridCol;
+        GH_Skin.canvas_grid_row = gridRow;
         GH_Skin.canvas_mono = true;
         GH_Skin.canvas_mono_color = darkBg;
         GH_Skin.canvas_shade = Color.FromArgb(255, 30, 30, 30);
@@ -200,10 +252,32 @@ public class GHDarkModeComponent : GH_Component
         GH_Skin.zui_fill_highlight = Color.FromArgb(255, 55, 55, 58);
     }
 
-    /// <summary>Apply default light theme (Grasshopper-style).</summary>
-    private static void ApplyLightTheme()
+    /// <summary>
+    /// Restore baseline skin snapshot if present; otherwise fall back to the legacy hardcoded light theme.
+    /// </summary>
+    private static void RestoreBaselineSkinOrFallbackLight()
     {
-        // Default canvas: RGB 212, 208, 199 (from grasshopper_gui.xml)
+        string settingsFolder = GetSettingsFolderOrThrow();
+        string baselinePath = Path.Combine(settingsFolder, BaselineSkinFileName);
+        string guiPath = Path.Combine(settingsFolder, "grasshopper_gui.xml");
+
+        if (File.Exists(baselinePath))
+        {
+            File.Copy(baselinePath, guiPath, overwrite: true);
+            GH_Skin.LoadSkin();
+            return;
+        }
+
+        ApplyLegacyHardcodedLightTheme();
+    }
+
+    /// <summary>
+    /// Legacy light theme (Grasshopper-style defaults).
+    /// Kept as a fallback for when no baseline snapshot exists.
+    /// </summary>
+    private static void ApplyLegacyHardcodedLightTheme()
+    {
+        // Default canvas: RGB 212, 208, 199 (typical grasshopper_gui.xml)
         Color lightBg = Color.FromArgb(255, 212, 208, 199);
         Color lightGrid = Color.FromArgb(255, 190, 186, 178);
         Color darkEdge = Color.FromArgb(255, 140, 136, 128);
@@ -264,5 +338,46 @@ public class GHDarkModeComponent : GH_Component
         GH_Skin.zui_edge_highlight = Color.FromArgb(255, 0, 122, 204);
         GH_Skin.zui_fill = compBg;
         GH_Skin.zui_fill_highlight = compSel;
+    }
+
+    private static (int gridCol, int gridRow) ReadBaselineGridSpacingOrFallback()
+    {
+        try
+        {
+            string settingsFolder = GetSettingsFolderOrThrow();
+            string baselinePath = Path.Combine(settingsFolder, BaselineSkinFileName);
+            if (!File.Exists(baselinePath))
+                return (50, 50);
+
+            XDocument doc = XDocument.Load(baselinePath);
+            // grasshopper_gui.xml is simple key/value-ish xml. We keep this resilient:
+            // just search for the elements named like the GH_Skin fields.
+            int? col = TryReadIntElement(doc, "canvas_grid_col");
+            int? row = TryReadIntElement(doc, "canvas_grid_row");
+            return (col ?? 50, row ?? 50);
+        }
+        catch
+        {
+            // Never block theme switching on a parse issue.
+            return (50, 50);
+        }
+    }
+
+    private static int? TryReadIntElement(XDocument doc, string elementName)
+    {
+        XElement? el = doc.Root?.Element(elementName);
+        if (el is null)
+        {
+            // Some files may nest values; do a cheap scan.
+            el = doc.Descendants(elementName).FirstOrDefault();
+        }
+
+        if (el is null)
+            return null;
+
+        if (int.TryParse(el.Value?.Trim(), out int value))
+            return value;
+
+        return null;
     }
 }
