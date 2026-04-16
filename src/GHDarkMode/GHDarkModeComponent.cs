@@ -181,15 +181,16 @@ public class GHDarkModeComponent : GH_Component
 
     /// <summary>
     /// Apply dark theme (VS/Adobe-style), but keep certain non-color values from the baseline.
-    /// Currently: grid spacing (canvas_grid_col / canvas_grid_row).
+    /// Currently: grid spacing + canvas shadow sizing + monochrome flag.
     /// </summary>
     private static void ApplyDarkThemeBasedOnBaseline()
     {
-        (int gridCol, int gridRow) = ReadBaselineGridSpacingOrFallback();
+        BaselineCanvasSettings baseline = ReadBaselineCanvasSettingsOrFallback();
 
         Color darkBg = Color.FromArgb(255, 45, 45, 48);      // #2D2D30
         Color darkBg2 = Color.FromArgb(255, 37, 37, 38);     // slightly darker
-        Color darkGrid = Color.FromArgb(255, 60, 60, 63);
+        // Keep gridlines subtle. Baseline grid color uses alpha; preserve that alpha by using a low-A grid tone.
+        Color darkGrid = Color.FromArgb(30, 255, 255, 255);
         Color darkEdge = Color.FromArgb(255, 62, 62, 66);
         Color lightWire = Color.FromArgb(255, 180, 180, 180);
         Color lightText = Color.FromArgb(255, 220, 220, 220);
@@ -202,12 +203,17 @@ public class GHDarkModeComponent : GH_Component
         GH_Skin.canvas_back = darkBg;
         GH_Skin.canvas_edge = darkEdge;
         GH_Skin.canvas_grid = darkGrid;
-        GH_Skin.canvas_grid_col = gridCol;
-        GH_Skin.canvas_grid_row = gridRow;
-        GH_Skin.canvas_mono = true;
+        GH_Skin.canvas_grid_col = baseline.GridColumnWidth;
+        GH_Skin.canvas_grid_row = baseline.GridRowHeight;
+
+        // Important: canvas_monochromatic can suppress grid/document styling on some versions.
+        // Preserve the baseline flag and only adjust the actual colors.
+        GH_Skin.canvas_mono = baseline.IsMonochrome;
         GH_Skin.canvas_mono_color = darkBg;
-        GH_Skin.canvas_shade = Color.FromArgb(255, 30, 30, 30);
-        GH_Skin.canvas_shade_size = 4;
+
+        // Preserve baseline shadow sizing so document edges/shading behave the same.
+        GH_Skin.canvas_shade = Color.FromArgb(80, 0, 0, 0);
+        GH_Skin.canvas_shade_size = baseline.ShadowSize;
 
         // Wires
         GH_Skin.wire_default = lightWire;
@@ -342,40 +348,79 @@ public class GHDarkModeComponent : GH_Component
 
     private static (int gridCol, int gridRow) ReadBaselineGridSpacingOrFallback()
     {
+        BaselineCanvasSettings s = ReadBaselineCanvasSettingsOrFallback();
+        return (s.GridColumnWidth, s.GridRowHeight);
+    }
+
+    private readonly record struct BaselineCanvasSettings(
+        int GridColumnWidth,
+        int GridRowHeight,
+        bool IsMonochrome,
+        int ShadowSize);
+
+    private static BaselineCanvasSettings ReadBaselineCanvasSettingsOrFallback()
+    {
+        // Defaults match Grasshopper-ish typical values, but we prefer reading them from baseline XML.
+        BaselineCanvasSettings fallback = new(
+            GridColumnWidth: 150,
+            GridRowHeight: 50,
+            IsMonochrome: false,
+            ShadowSize: 30);
+
         try
         {
             string settingsFolder = GetSettingsFolderOrThrow();
             string baselinePath = Path.Combine(settingsFolder, BaselineSkinFileName);
             if (!File.Exists(baselinePath))
-                return (50, 50);
+                return fallback;
 
             XDocument doc = XDocument.Load(baselinePath);
-            // grasshopper_gui.xml is simple key/value-ish xml. We keep this resilient:
-            // just search for the elements named like the GH_Skin fields.
-            int? col = TryReadIntElement(doc, "canvas_grid_col");
-            int? row = TryReadIntElement(doc, "canvas_grid_row");
-            return (col ?? 50, row ?? 50);
+
+            int gridCol = TryReadItemInt(doc, "canvas_columnwidth") ?? fallback.GridColumnWidth;
+            int gridRow = TryReadItemInt(doc, "canvas_rowheight") ?? fallback.GridRowHeight;
+            bool mono = TryReadItemBool(doc, "canvas_monochromatic") ?? fallback.IsMonochrome;
+            int shadowSize = TryReadItemInt(doc, "canvas_shadowsize") ?? fallback.ShadowSize;
+
+            return new BaselineCanvasSettings(
+                GridColumnWidth: gridCol,
+                GridRowHeight: gridRow,
+                IsMonochrome: mono,
+                ShadowSize: shadowSize);
         }
         catch
         {
             // Never block theme switching on a parse issue.
-            return (50, 50);
+            return fallback;
         }
     }
 
-    private static int? TryReadIntElement(XDocument doc, string elementName)
+    private static XElement? FindItemByName(XDocument doc, string itemName)
     {
-        XElement? el = doc.Root?.Element(elementName);
-        if (el is null)
-        {
-            // Some files may nest values; do a cheap scan.
-            el = doc.Descendants(elementName).FirstOrDefault();
-        }
+        // grasshopper_gui.xml is an archive-like XML that stores key/value pairs under <item name="...">.
+        return doc
+            .Descendants("item")
+            .FirstOrDefault(x => string.Equals((string?)x.Attribute("name"), itemName, StringComparison.OrdinalIgnoreCase));
+    }
 
-        if (el is null)
+    private static int? TryReadItemInt(XDocument doc, string itemName)
+    {
+        XElement? item = FindItemByName(doc, itemName);
+        if (item is null)
             return null;
 
-        if (int.TryParse(el.Value?.Trim(), out int value))
+        if (int.TryParse(item.Value?.Trim(), out int value))
+            return value;
+
+        return null;
+    }
+
+    private static bool? TryReadItemBool(XDocument doc, string itemName)
+    {
+        XElement? item = FindItemByName(doc, itemName);
+        if (item is null)
+            return null;
+
+        if (bool.TryParse(item.Value?.Trim(), out bool value))
             return value;
 
         return null;
