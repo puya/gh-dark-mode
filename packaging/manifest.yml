@@ -3,12 +3,13 @@
 # After `./scripts/build.sh`, dist/ contains this file, GHDarkMode.gha, and the icon below for `yak build`.
 ---
 name: gh-dark-mode
-version: 1.0.0
+version: 1.0.1
 authors:
   - GH Dark Mode
 description: >
-  Grasshopper 1 plugin for Rhino 8 (Windows and Mac): toggle the Grasshopper GUI between dark and light
-  themes using GH_Skin and grasshopper_gui.xml, with optional per-key color overrides via companion components.
+  Dark mode for Grasshopper in Rhino 8, on Mac and Windows. Applies a polished dark look by default,
+  and you can switch back to your normal theme anytime. Optional components let you customize colors
+  when you want the UI exactly your way.
 url: "https://github.com/puya/GHDarkMode"
 icon: gh-darkmode-main-a.png
 keywords:

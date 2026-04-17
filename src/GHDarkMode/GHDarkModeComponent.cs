@@ -44,7 +44,8 @@ public class GHDarkModeComponent : GH_Component
         : base(
             name: "GH Dark Mode",
             nickname: "DarkMode",
-            description: "Toggle Grasshopper GUI between Dark Mode and Light Mode. M = true: Dark; M = false: Light. Optional OVR: tokens from GH Dark Mode Override. Route Out to Panel for status.",
+            description:
+                "Dark mode for Grasshopper: M true = dark theme, M false = restore your saved light look. Optional color overrides via OVR. Route Out to a Panel for status.",
             category: "Params",
             subCategory: "Util")
     {

@@ -15,7 +15,7 @@ public class GHDarkModeOverrideComponent : GH_Component
         : base(
             name: "GH Dark Mode Override",
             nickname: "DMOverride",
-            description: "Pick a grasshopper_gui.xml color key (dropdown) and color; emits an override token for GH Dark Mode.",
+            description: "Pick a UI color to tweak (dropdown) and a color; wire into GH Dark Mode’s OVR input for custom theming.",
             category: "Params",
             subCategory: "Util")
     {

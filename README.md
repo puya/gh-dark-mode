@@ -2,7 +2,7 @@
 
 ## What it does
 
-**GH Dark Mode** is a Grasshopper 1 plugin for **Rhino 8** on **Windows and Mac**. It switches the Grasshopper **canvas and UI** between a **dark theme** and your **saved “light” baseline**. It uses Grasshopper’s **`GH_Skin`** API and the same `grasshopper_gui.xml` skin file the app already uses, so changes persist across sessions.
+**GH Dark Mode** adds a **dark theme** to **Grasshopper** in **Rhino 8** on **Windows and Mac**. Turn it on for a ready-made dark canvas and UI, or switch back to your **saved light look** anytime. Changes persist between sessions. Optional tools let you **customize colors** if you want finer control.
 
 On the first run, the plugin stores a snapshot of your current skin as **`ghdarkmode_baseline_gui.xml`**. **Mode = false** restores that snapshot (your pre–dark-mode look). **Mode = true** applies a tuned dark theme and writes a set of default XML color overrides (wires, component fills/edges, etc.).
 
