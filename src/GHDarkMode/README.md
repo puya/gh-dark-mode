@@ -31,4 +31,18 @@ Settings live under the Grasshopper plugin folder, e.g. `grasshopper_gui.xml` an
 
 ### GH Dark Mode Override
 
-Emits one override token from **Key** + **Color** (+ **Enable**). Connect **Override** into **GH Dark Mode**’s **OVR** input. **Key** can be a short alias (`BG`, `WD`, …) or a raw XML item name (e.g. `normal.std.text`).
+- **Target** (`T`) — dropdown of skin keys: **favorites first**, then every `gh_drawing_color` key from the embedded `skin-keys-manifest.json` (regenerate with `scripts/extract_skin_keys_from_xml.py` from your `grasshopper_gui.xml` when needed).
+- **Color** (`C`), **Enable** (`E`) — as before.
+- **Custom key** (`K`, optional) — raw XML item name; when set, overrides **Target**.
+
+Connect **Override** into **GH Dark Mode**’s **OVR** input.
+
+**Refresh manifest keys from your Grasshopper XML**
+
+```bash
+python3 scripts/extract_skin_keys_from_xml.py \
+  --xml "$HOME/Library/Application Support/McNeel/Rhinoceros/8.0/Plug-ins/Grasshopper (b45a29b1-4343-4035-989e-044e8580d9cf)/grasshopper_gui.xml" \
+  --manifest src/GHDarkMode/Resources/skin-keys-manifest.json
+```
+
+Then rebuild/reinstall so the updated JSON is embedded in the `.gha`.

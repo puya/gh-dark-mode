@@ -42,4 +42,7 @@
     <PackageReference Include="Grasshopper" Version="8.26.25349.19001" Condition="!Exists('$(RhinoRefPath)/Grasshopper.dll')" />
     <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\skin-keys-manifest.json" LogicalName="GHDarkMode.Resources.skin-keys-manifest.json" />
+  </ItemGroup>
 </Project>
