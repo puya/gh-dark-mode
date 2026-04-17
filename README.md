@@ -1,68 +1,71 @@
-# Moonlight / GH Dark Mode
+# GH Dark Mode
 
-Grasshopper 1 plugin for **Rhino 8** (primarily documented for **Mac**) that toggles the Grasshopper GUI between **dark** and **light** themes—same idea as the Windows plugin [Moonlight](https://food4rhino.com/en/app/moonlight) by ekimroyrp. This repo holds the Mac-oriented reimplementation plus reference material for the original Windows `.gha`.
+## What it does
+
+**GH Dark Mode** is a Grasshopper 1 plugin for **Rhino 8** that switches the Grasshopper **canvas and UI** between a **dark theme** and your **saved “light” baseline**. It uses Grasshopper’s **`GH_Skin`** API and the same `grasshopper_gui.xml` skin file the app already uses, so changes persist across sessions.
+
+On the first run, the plugin stores a snapshot of your current skin as **`ghdarkmode_baseline_gui.xml`**. **Mode = false** restores that snapshot (your pre–dark-mode look). **Mode = true** applies a tuned dark theme and writes a set of default XML color overrides (wires, component fills/edges, etc.).
+
+**GH Dark Mode Override** is a second component that picks individual **skin color keys** (from an embedded manifest) and outputs **tokens** you connect to the main component’s **OVR** input—so you can fine-tune colors without editing XML by hand.
+
+---
+
+## How to use
+
+1. **Install** the **`GHDarkMode.gha`** into Grasshopper’s **Libraries** folder (or install from the **Rhino Package Manager** if you use a published Yak package), then restart Rhino/Grasshopper.
+2. In Grasshopper, open **Params → Util** and place **GH Dark Mode**.
+3. Wire **Mode (M)** with a boolean or button: **`true`** applies dark mode; **`false`** restores the baseline snapshot.
+4. Optional: place **GH Dark Mode Override**, choose a **Target** key and **Color**, and connect its output into **Overrides (OVR)** on the main component (list input). Built-in dark defaults and your **OVR** tokens are merged; same key from **OVR** wins.
+5. **Reset (R)** restores the baseline file if it exists, otherwise resets GUI XML toward factory defaults (restart Grasshopper to refresh everything).
+6. **Invert (I)** is an optional debug action that inverts colors in `grasshopper_gui.xml`—use sparingly; use **Reset** or **Mode = false** to recover.
+
+After a dark solve, **Out** shows status, how many XML color keys were written, and the full merged override list (use a **Panel** to read it).
+
+You may need to **restart Grasshopper** or reopen the definition for the canvas to fully match the new skin.
+
+**More detail:** [src/GHDarkMode/README.md](src/GHDarkMode/README.md)
+
+---
 
 ## Screenshot
 
 ![Grasshopper dark mode with GH Dark Mode and GH Dark Mode Override on the canvas](docs/gh-darkmode-screenshot.jpg)
 
-Dark theme on the canvas using **GH Dark Mode** (**Params → Util**). Optional **GH Dark Mode Override** components feed the **OVR** input for extra XML color keys.
+---
+
+## Build from source (Mac)
+
+**Prerequisites:** Rhino 8 for Mac, .NET 7 SDK (or later).
+
+```bash
+./scripts/build-and-install.sh
+```
+
+This builds **`dist/GHDarkMode.gha`** and copies it into your Grasshopper **Libraries** folder. Artifact only: `./scripts/build.sh`.
+
+**SDK / Rhino path:** [docs/SDK_VERSION_AND_COMPATIBILITY.md](docs/SDK_VERSION_AND_COMPATIBILITY.md)
+
+### Yak / Rhino Package Manager (maintainers)
+
+1. Keep **`packaging/manifest.yml`** **`version`** in sync with **`GHDarkModeInfo.Version`**.
+2. Set **`url`** in the manifest before publishing.
+3. **`./scripts/yak-pack.sh`** then **`yak login`** and **`yak push`** on the generated **`.yak`** — see [Creating a Grasshopper plug-in package](https://developer.rhino3d.com/guides/yak/creating-a-grasshopper-plugin-package/) and [Pushing a package](https://developer.rhino3d.com/guides/yak/pushing-a-package-to-the-server/).
 
 ---
 
-## What’s in this repo
+## Repository layout
 
-| Item | Description |
-|------|-------------|
-| **src/GHDarkMode/** | Plugin source: **GH Dark Mode** + **GH Dark Mode Override**; build via `./scripts/build-and-install.sh`. |
-| **icons/** | 24×24 PNG icons with alpha, embedded in the `.gha`. |
-| **scripts/build-and-install.sh** | Release build and copy `dist/GHDarkMode.gha` into Grasshopper **Libraries**. |
-| **scripts/build.sh** | Build only; fills **`dist/`** with `.gha`, **`manifest.yml`**, and Package Manager icon for Yak. |
-| **scripts/yak-pack.sh** | Runs **`build.sh`** then **`yak build`** in **`dist/`** → **`*.yak`** for the Rhino Package Manager. |
-| **packaging/manifest.yml** | Yak manifest (**`version`** must match **`GHDarkModeInfo.Version`**); set **`url`** before publish. |
-| **docs/** | **`gh-darkmode-screenshot.jpg`** (above), **SDK_VERSION_AND_COMPATIBILITY.md**, **DEVELOPMENT.md**, task notes. |
-| **REPLICATION_SPEC.md** | Spec for reimplementing Moonlight on Mac (`GH_Skin`, dark/light behavior). |
-| **moonlight1-0.gha** | Original Windows Moonlight plugin (reference only; does not run on Mac). |
-
----
-
-## Quick start (Mac)
-
-1. **Prerequisites:** Rhino 8 for Mac, .NET 7 SDK (or later), Grasshopper 1.
-2. **Build and install:**
-   ```bash
-   ./scripts/build-and-install.sh
-   ```
-3. **Restart Rhino and Grasshopper.** In **Params → Util** add **GH Dark Mode** and optionally **GH Dark Mode Override**.
-4. **Inputs (main component):** **Mode (M)** — `true` = dark, `false` = restore **baseline**; **Overrides (OVR)** — optional list of tokens from override components; **Reset (R)** — baseline or factory reset; **Invert (I)** — optional debug invert of XML colors. After a dark solve, **Out** lists merged XML overrides and patch counts.
-
-Persistence uses `grasshopper_gui.xml` in the Grasshopper plugin data folder; the plugin also keeps `ghdarkmode_baseline_gui.xml` for restore. You may need to **restart Grasshopper** (or reopen the definition) for the canvas to fully refresh.
-
-**Details:** [src/GHDarkMode/README.md](src/GHDarkMode/README.md) · **SDK paths:** [docs/SDK_VERSION_AND_COMPATIBILITY.md](docs/SDK_VERSION_AND_COMPATIBILITY.md)
-
-### Yak / Rhino Package Manager
-
-1. Bump **`version`** in **`packaging/manifest.yml`** and **`GHDarkModeInfo.Version`** together for each release.
-2. Set **`url`** in the manifest to your public GitHub or Food4Rhino page.
-3. From repo root: **`./scripts/yak-pack.sh`** (optional: **`--platform mac`** or **`--platform win`**). Override the CLI with **`YAK=/path/to/yak`** if needed.
-4. Authenticate once: **`yak login`**, then publish per [Pushing a package to the server](https://developer.rhino3d.com/guides/yak/pushing-a-package-to-the-server/). Overview: [Creating a Grasshopper plug-in package](https://developer.rhino3d.com/guides/yak/creating-a-grasshopper-plugin-package/).
-
-The **`dist/`** folder is gitignored; **`build.sh`** populates it with everything needed for **`yak build`**.
-
----
-
-## Project status
-
-- [x] Dark/light via `GH_Skin` + baseline restore.
-- [x] **GH Dark Mode Override** + **OVR** list (built-in dark XML defaults + optional patches).
-- [x] **Invert** XML transform on `grasshopper_gui.xml` (distinct-color debug input removed from UI).
-- [x] **build/** outputs, **dist/** `.gha`, Yak **`packaging/manifest.yml`** + **`yak-pack.sh`**.
-- [x] 24×24 PNG component icons with alpha.
-
-See **REPLICATION_SPEC.md** and **docs/DEVELOPMENT.md** for implementation notes.
+| Path | Purpose |
+|------|---------|
+| **src/GHDarkMode/** | Plugin source |
+| **icons/** | 24×24 PNG icons (embedded in `.gha`) |
+| **scripts/** | `build.sh`, `build-and-install.sh`, `yak-pack.sh` |
+| **packaging/manifest.yml** | Yak package metadata |
+| **docs/** | Screenshot, SDK notes, **DEVELOPMENT.md** |
+| **REPLICATION_SPEC.md** | Historical spec for the skin / `GH_Skin` approach |
 
 ---
 
 ## License
 
-The original Moonlight plugin is proprietary (free). This reimplementation (GH Dark Mode) is provided for use with Rhino and Grasshopper.
+Provided for use with Rhino and Grasshopper.
