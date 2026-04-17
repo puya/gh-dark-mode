@@ -10,6 +10,7 @@
 #
 # Usage:
 #   ./scripts/release-github.sh v1.0.1
+#   ./scripts/release-github.sh     # uses Version from GHDarkModeInfo.cs → tag v1.0.x
 #
 # Bump GHDarkModeInfo.Version and packaging/manifest.yml before releasing if needed.
 # After a successful run, push the tag if it only exists locally:
@@ -20,7 +21,20 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-TAG="${1:?Usage: $0 v1.0.0}"
+
+if [ -n "${1:-}" ]; then
+  TAG="$1"
+else
+  INFO="$REPO_ROOT/src/GHDarkMode/GHDarkModeInfo.cs"
+  VER=$(sed -n 's/^[[:space:]]*public override string Version => "\([^"]*\)".*/\1/p' "$INFO" | head -1)
+  if [ -z "$VER" ]; then
+    echo "Usage: $0 <tag>   example: $0 v1.0.1"
+    echo "Could not read Version from $INFO"
+    exit 1
+  fi
+  TAG="v${VER}"
+  echo "No tag passed; using $TAG from GHDarkModeInfo.Version"
+fi
 
 case "$TAG" in
   v*) ;;
