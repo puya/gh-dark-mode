@@ -23,8 +23,8 @@ public class GHDarkModeOverrideComponent : GH_Component
 
     public override Guid ComponentGuid => new Guid("0B67BA80-7A70-4F34-9B44-0EDE97D453E4");
 
-    /// <summary>Moon + gears (48×48 BMP) — pairs with the main component’s dark-state icon.</summary>
-    protected override Bitmap Icon => ComponentIcons.MoonGears48;
+    /// <summary>Gear icon (24×24 PNG + alpha) — pairs with the main component’s dark-state icon.</summary>
+    protected override Bitmap Icon => ComponentIcons.Gear;
 
     protected override void RegisterInputParams(GH_InputParamManager pManager)
     {

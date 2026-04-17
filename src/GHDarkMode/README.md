@@ -27,7 +27,7 @@ Dark mode applies built-in XML colors for wires, normal/hidden std/sel edges and
 
 **Out** — status, XML write count, any keys missing from XML, and the full merged override list (built-in + **OVR**) after a dark apply.
 
-**Icons** — embedded 48×48 BMPs: main component toggles moon vs moon+gears with last dark/light solve; override uses moon+gears.
+**Icons** — embedded 24×24 PNGs with alpha: main toggles **main** vs **gear** art with last dark/light solve; override uses the **gear** icon.
 
 Settings live under the Grasshopper plugin folder, e.g. `grasshopper_gui.xml` and `ghdarkmode_baseline_gui.xml`.
 

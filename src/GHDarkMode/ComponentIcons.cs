@@ -4,21 +4,21 @@ using System.Reflection;
 namespace GHDarkMode;
 
 /// <summary>
-/// Embedded 48×48 BMP icons shipped with the plugin (see repo <c>icons/</c>).
+/// Embedded 24×24 PNG icons with alpha (see repo <c>icons/</c>).
 /// </summary>
 internal static class ComponentIcons
 {
-    private const string MoonResource = "GHDarkMode.icon-moon-48.bmp";
-    private const string MoonGearsResource = "GHDarkMode.icon-moon-gears-48.bmp";
+    private const string MainResource = "GHDarkMode.icon-main.png";
+    private const string GearResource = "GHDarkMode.icon-gear.png";
 
-    private static Bitmap? _moon48;
-    private static Bitmap? _moonGears48;
+    private static Bitmap? _main;
+    private static Bitmap? _gear;
 
-    /// <summary>Moon only — shown when the main component last applied light / idle.</summary>
-    public static Bitmap Moon48 => _moon48 ??= Load(MoonResource);
+    /// <summary>Main capsule — light / idle on the primary component.</summary>
+    public static Bitmap Main => _main ??= Load(MainResource);
 
-    /// <summary>Moon + gears — dark mode active on main component, or the override component.</summary>
-    public static Bitmap MoonGears48 => _moonGears48 ??= Load(MoonGearsResource);
+    /// <summary>Gear variant — dark state on the primary component and the override component.</summary>
+    public static Bitmap Gear => _gear ??= Load(GearResource);
 
     private static Bitmap Load(string logicalName)
     {

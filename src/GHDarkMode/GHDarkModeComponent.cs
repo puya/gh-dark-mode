@@ -52,7 +52,7 @@ public class GHDarkModeComponent : GH_Component
 
     public override Guid ComponentGuid => new Guid("B1C2D3E4-F5A6-4780-BCDE-F12345678901");
 
-    protected override Bitmap Icon => _lastModeWasDark ? ComponentIcons.MoonGears48 : ComponentIcons.Moon48;
+    protected override Bitmap Icon => _lastModeWasDark ? ComponentIcons.Gear : ComponentIcons.Main;
 
     protected override void RegisterInputParams(GH_InputParamManager pManager)
     {
