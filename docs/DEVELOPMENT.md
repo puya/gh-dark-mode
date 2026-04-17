@@ -243,6 +243,7 @@ Then copy `bin/GHDarkMode.dll` to Libraries as `GHDarkMode.gha` manually or by a
 | `scripts/read-version.sh` | Prints **`<Version>`** via **`dotnet msbuild -getProperty:Version`** (no compile). |
 | `scripts/yak-pack.sh` | Runs **`build.sh`**, then **`yak build`** in **`dist/`** → **`*.yak`**. |
 | `scripts/release-github.sh` | Local **`build.sh`**, then **`gh release create`** / upload **`GHDarkMode.gha`**. |
+| `scripts/publish.sh` | **`yak-pack.sh`** → **`yak push`** → **`release-github.sh`** (single maintainer entry point). |
 | `scripts/build-and-install.sh` | Build + install to Libraries (also refreshes **`dist/`** Yak files). |
 
 ---
