@@ -14,6 +14,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using System.Xml.Linq;
 using Grasshopper;
 using Grasshopper.Kernel;
@@ -50,6 +51,8 @@ public class GHDarkModeComponent : GH_Component
     {
         pManager.AddBooleanParameter("M", "Mode", "True = Dark Mode, False = Light Mode. Use a Button or toggle to apply.", GH_ParamAccess.item, false);
         pManager.AddBooleanParameter("R", "Reset", "True = reset Grasshopper GUI to factory defaults (deletes grasshopper_gui.xml). Restart Grasshopper after running.", GH_ParamAccess.item, false);
+        pManager.AddBooleanParameter("Invert", "I", "Debug action: invert all colors in grasshopper_gui.xml (including background).", GH_ParamAccess.item, false);
+        pManager.AddBooleanParameter("Debug", "D", "Debug action: assign very distinct test colors to all XML colors except background.", GH_ParamAccess.item, false);
 
         // Optional dark-mode color overrides. If not connected, defaults are used.
         pManager.AddColourParameter("Background", "BG", "Optional: canvas background color in dark mode.", GH_ParamAccess.item);
@@ -64,6 +67,7 @@ public class GHDarkModeComponent : GH_Component
         pManager.AddColourParameter("Wire Default", "WD", "Optional: default wire color in dark mode.", GH_ParamAccess.item);
         pManager.AddColourParameter("Wire Sel In", "WSI", "Optional: selected wire-in color (to selected component).", GH_ParamAccess.item);
         pManager.AddColourParameter("Wire Sel Out", "WSO", "Optional: selected wire-out color (from selected component).", GH_ParamAccess.item);
+        pManager.AddTextParameter("Overrides", "OVR", "Optional: list of override tokens from GH Dark Mode Override component.", GH_ParamAccess.list);
 
         for (int i = 2; i < pManager.ParamCount; i++)
             pManager[i].Optional = true;
@@ -84,6 +88,14 @@ public class GHDarkModeComponent : GH_Component
         // Second input is optional in older definitions; ignore if not present.
         if (Params.Input.Count > 1)
             da.GetData(1, ref reset);
+
+        bool invert = false;
+        if (Params.Input.Count > 2)
+            da.GetData(2, ref invert);
+
+        bool debug = false;
+        if (Params.Input.Count > 3)
+            da.GetData(3, ref debug);
 
         if (reset)
         {
@@ -110,22 +122,47 @@ public class GHDarkModeComponent : GH_Component
             // This lets us restore the user's current/factory setup later (light = revert).
             EnsureBaselineSkinSnapshotExists();
 
+            // Debug transforms have priority over mode toggle.
+            if (invert)
+            {
+                int changed = TransformAllXmlColors(ColorTransformMode.InvertAll);
+                Message = "Invert";
+                da.SetData(0, $"Invert applied to {changed} XML color entries. Restart Grasshopper or reopen the definition to see changes.");
+                return;
+            }
+
+            if (debug)
+            {
+                int changed = TransformAllXmlColors(ColorTransformMode.DebugDistinctNoBackground);
+                Message = "Debug";
+                da.SetData(0, $"Debug colors applied to {changed} XML color entries (background preserved). Restart Grasshopper or reopen the definition to see changes.");
+                return;
+            }
+
             ThemeOverrides overrides = ReadThemeOverrides(da);
+            List<XmlColorOverride> modularOverrides = ReadModularOverrides(da);
 
             if (run)
             {
                 ApplyDarkThemeBasedOnBaseline(overrides);
                 Message = "Dark";
-                da.SetData(0, BuildOverrideSummary("Dark Mode applied.", overrides));
+                string summary = BuildOverrideSummary("Dark Mode applied.", overrides);
+                GH_Skin.SaveSkin();
+
+                if (modularOverrides.Count > 0)
+                {
+                    int applied = ApplyXmlColorOverrides(modularOverrides);
+                    summary += $" Modular overrides applied: {applied}.";
+                }
+                da.SetData(0, summary);
             }
             else
             {
                 RestoreBaselineSkinOrFallbackLight();
                 Message = "Light";
                 da.SetData(0, BuildOverrideSummary("Reverted to baseline (pre-dark) skin.", overrides));
+                GH_Skin.SaveSkin();
             }
-
-            GH_Skin.SaveSkin();
         }
         catch (Exception ex)
         {
@@ -419,18 +456,41 @@ public class GHDarkModeComponent : GH_Component
     private ThemeOverrides ReadThemeOverrides(IGH_DataAccess da)
     {
         return new ThemeOverrides(
-            Background: ReadOptionalColor(da, 2),
-            ComponentFill: ReadOptionalColor(da, 3),
-            ComponentSelectedFill: ReadOptionalColor(da, 4),
-            ComponentEdge: ReadOptionalColor(da, 5),
-            ComponentNameText: ReadOptionalColor(da, 6),
-            SecondaryText: ReadOptionalColor(da, 7),
-            ComponentSelectedText: ReadOptionalColor(da, 8),
-            OrangeFill: ReadOptionalColor(da, 9),
-            OrangeSelectedFill: ReadOptionalColor(da, 10),
-            WireDefault: ReadOptionalColor(da, 11),
-            WireSelectedIn: ReadOptionalColor(da, 12),
-            WireSelectedOut: ReadOptionalColor(da, 13));
+            Background: ReadOptionalColor(da, 4),
+            ComponentFill: ReadOptionalColor(da, 5),
+            ComponentSelectedFill: ReadOptionalColor(da, 6),
+            ComponentEdge: ReadOptionalColor(da, 7),
+            ComponentNameText: ReadOptionalColor(da, 8),
+            SecondaryText: ReadOptionalColor(da, 9),
+            ComponentSelectedText: ReadOptionalColor(da, 10),
+            OrangeFill: ReadOptionalColor(da, 11),
+            OrangeSelectedFill: ReadOptionalColor(da, 12),
+            WireDefault: ReadOptionalColor(da, 13),
+            WireSelectedIn: ReadOptionalColor(da, 14),
+            WireSelectedOut: ReadOptionalColor(da, 15));
+    }
+
+    private List<XmlColorOverride> ReadModularOverrides(IGH_DataAccess da)
+    {
+        const int modularOverridesIndex = 16;
+        List<string> tokens = new();
+        List<XmlColorOverride> parsed = new();
+
+        if (Params.Input.Count <= modularOverridesIndex)
+            return parsed;
+
+        if (!da.GetDataList(modularOverridesIndex, tokens))
+            return parsed;
+
+        foreach (string token in tokens.Where(t => !string.IsNullOrWhiteSpace(t)))
+        {
+            if (TryParseOverrideToken(token, out XmlColorOverride ov))
+                parsed.Add(ov);
+            else
+                AddRuntimeMessage(GH_RuntimeMessageLevel.Warning, $"Invalid override token skipped: '{token}'.");
+        }
+
+        return parsed;
     }
 
     private Color? ReadOptionalColor(IGH_DataAccess da, int index)
@@ -575,6 +635,192 @@ public class GHDarkModeComponent : GH_Component
     private static string FormatColor(Color c)
     {
         return $"rgba({c.R},{c.G},{c.B},{c.A})";
+    }
+
+    private readonly record struct XmlColorOverride(string Name, Color Value);
+
+    private static bool TryParseOverrideToken(string token, out XmlColorOverride ov)
+    {
+        // Token format from GH Dark Mode Override component:
+        // <name>|<a>|<r>|<g>|<b>
+        ov = default;
+        string[] parts = token.Split('|');
+        if (parts.Length != 5)
+            return false;
+
+        string name = parts[0].Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            return false;
+
+        if (!byte.TryParse(parts[1], out byte a))
+            return false;
+        if (!byte.TryParse(parts[2], out byte r))
+            return false;
+        if (!byte.TryParse(parts[3], out byte g))
+            return false;
+        if (!byte.TryParse(parts[4], out byte b))
+            return false;
+
+        ov = new XmlColorOverride(name, Color.FromArgb(a, r, g, b));
+        return true;
+    }
+
+    private enum ColorTransformMode
+    {
+        InvertAll,
+        DebugDistinctNoBackground
+    }
+
+    private static int TransformAllXmlColors(ColorTransformMode mode)
+    {
+        string settingsFolder = GetSettingsFolderOrThrow();
+        string guiPath = Path.Combine(settingsFolder, "grasshopper_gui.xml");
+        if (!File.Exists(guiPath))
+            throw new FileNotFoundException($"Could not find '{guiPath}'");
+
+        XDocument doc = XDocument.Load(guiPath);
+        XElement[] items = doc.Descendants("item").ToArray();
+        int changed = 0;
+        int debugIndex = 0;
+
+        foreach (XElement item in items)
+        {
+            string name = ((string?)item.Attribute("name")) ?? string.Empty;
+            XElement? argb = item.Element("ARGB");
+            if (argb is null)
+                continue;
+
+            if (!TryParseArgb(argb.Value, out Color original))
+                continue;
+
+            Color updated;
+            switch (mode)
+            {
+                case ColorTransformMode.InvertAll:
+                    updated = Color.FromArgb(original.A, 255 - original.R, 255 - original.G, 255 - original.B);
+                    break;
+                case ColorTransformMode.DebugDistinctNoBackground:
+                    if (IsBackgroundColorKey(name))
+                        continue;
+                    updated = DebugPalette(debugIndex++, original.A);
+                    break;
+                default:
+                    continue;
+            }
+
+            argb.Value = $"{updated.A};{updated.R};{updated.G};{updated.B}";
+            changed++;
+        }
+
+        doc.Save(guiPath);
+        GH_Skin.LoadSkin();
+        GH_Skin.SaveSkin();
+        return changed;
+    }
+
+    private static int ApplyXmlColorOverrides(List<XmlColorOverride> overrides)
+    {
+        if (overrides.Count == 0)
+            return 0;
+
+        string settingsFolder = GetSettingsFolderOrThrow();
+        string guiPath = Path.Combine(settingsFolder, "grasshopper_gui.xml");
+        if (!File.Exists(guiPath))
+            throw new FileNotFoundException($"Could not find '{guiPath}'");
+
+        XDocument doc = XDocument.Load(guiPath);
+        int changed = 0;
+
+        foreach (XmlColorOverride ov in overrides)
+        {
+            string resolvedName = ResolveOverrideName(ov.Name);
+            XElement? item = FindItemByName(doc, resolvedName);
+            if (item is null)
+                continue;
+
+            XElement? argb = item.Element("ARGB");
+            if (argb is null)
+                continue;
+
+            argb.Value = $"{ov.Value.A};{ov.Value.R};{ov.Value.G};{ov.Value.B}";
+            changed++;
+        }
+
+        doc.Save(guiPath);
+
+        // Reload only. Do not SaveSkin here: SaveSkin rewrites the full skin payload and can
+        // unintentionally normalize fields beyond the explicitly patched XML keys.
+        GH_Skin.LoadSkin();
+        return changed;
+    }
+
+    private static string ResolveOverrideName(string keyOrName)
+    {
+        // Support short keys as aliases, while still allowing raw XML item names.
+        return keyOrName.Trim().ToUpperInvariant() switch
+        {
+            "BG" => "canvas_backcolor",
+            "CF" => "normal.std.fill",
+            "CSF" => "normal.sel.fill",
+            "CE" => "normal.std.edge",
+            "CNT" => "normal.std.text",
+            "ST" => "hidden.std.text",
+            "CST" => "normal.sel.text",
+            "OF" => "warning.std.fill",
+            "OSF" => "warning.sel.fill",
+            "WD" => "wire_default",
+            "WSI" => "wire_selected_a",
+            "WSO" => "wire_selected_b",
+            _ => keyOrName.Trim()
+        };
+    }
+
+    private static bool IsBackgroundColorKey(string itemName)
+    {
+        // Keep background untouched in debug mode so the canvas remains readable.
+        return string.Equals(itemName, "canvas_backcolor", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(itemName, "canvas_monocolor", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static Color DebugPalette(int index, int alpha)
+    {
+        // High-contrast repeating palette for quickly identifying color key mappings.
+        Color[] palette =
+        {
+            Color.Magenta,
+            Color.Lime,
+            Color.Cyan,
+            Color.Orange,
+            Color.Yellow,
+            Color.BlueViolet,
+            Color.DeepPink,
+            Color.Aqua,
+            Color.Chartreuse,
+            Color.Coral
+        };
+
+        Color p = palette[index % palette.Length];
+        return Color.FromArgb(alpha, p.R, p.G, p.B);
+    }
+
+    private static bool TryParseArgb(string raw, out Color color)
+    {
+        color = Color.Empty;
+        string[] parts = (raw ?? string.Empty).Split(';');
+        if (parts.Length != 4)
+            return false;
+
+        if (!byte.TryParse(parts[0], out byte a))
+            return false;
+        if (!byte.TryParse(parts[1], out byte r))
+            return false;
+        if (!byte.TryParse(parts[2], out byte g))
+            return false;
+        if (!byte.TryParse(parts[3], out byte b))
+            return false;
+
+        color = Color.FromArgb(a, r, g, b);
+        return true;
     }
 
     private static class IconFactory
