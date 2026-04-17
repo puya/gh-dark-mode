@@ -61,23 +61,23 @@ Copy **`dist\GHDarkMode.gha`** (or **`build\GHDarkMode.dll`** renamed to **`.gha
 
 Builds are **local** (your Rhino 8 / .NET install — same as **`build.sh`** on Mac, or **`dotnet build`** on Windows). GitHub-hosted runners are **not** used: the Grasshopper NuGet graph can break on Linux CI, and release binaries are built on real Rhino environments.
 
-1. Bump **`GHDarkModeInfo.Version`** and **`packaging/manifest.yml`** if needed; commit.
+1. Bump **`<Version>`** in **`Directory.Build.props`** (single source of truth for the plugin, Yak, and tags); commit.
 2. Authenticate once: **`gh auth login`**
 3. Create the release and upload **`GHDarkMode.gha`**:
 
    ```bash
-   ./scripts/release-github.sh v1.0.3
+   ./scripts/release-github.sh
    ```
 
-   That runs **`build.sh`**, then **`gh release create`** (or **`gh release upload --clobber`** if the release already exists).
+   Omit the tag to use the version from **`Directory.Build.props`**, or pass **`vX.Y.Z`** explicitly. That runs **`build.sh`**, then **`gh release create`** (or **`gh release upload --clobber`** if the release already exists).
 
-4. Push the tag when **`gh`** reports it: **`git push origin v1.0.3`**
+4. If **`gh`** created a new tag only on the remote, sync with **`git fetch origin --tags`**, or push a local tag: **`git push origin vX.Y.Z`**
 
 You can instead run **`./scripts/build.sh`** and attach **`dist/GHDarkMode.gha`** manually on the GitHub **Releases** page.
 
 ### Yak / Rhino Package Manager (maintainers)
 
-1. Keep **`packaging/manifest.yml`** **`version`** in sync with **`GHDarkModeInfo.Version`**.
+1. **`packaging/manifest.yml`** uses **`version: $version`** — Yak fills it from the built **`.gha`** (same semver as **`Directory.Build.props`**).
 2. Set **`url`** in the manifest before publishing.
 3. **`./scripts/yak-pack.sh`** then **`yak login`** and **`yak push`** on the generated **`.yak`** — see [Creating a Grasshopper plug-in package](https://developer.rhino3d.com/guides/yak/creating-a-grasshopper-plugin-package/) and [Pushing a package](https://developer.rhino3d.com/guides/yak/pushing-a-package-to-the-server/).
 
@@ -89,7 +89,7 @@ You can instead run **`./scripts/build.sh`** and attach **`dist/GHDarkMode.gha`*
 |------|---------|
 | **src/GHDarkMode/** | Plugin source |
 | **icons/** | 24×24 PNG icons (embedded in `.gha`) |
-| **scripts/** | `build.sh`, `build-and-install.sh`, `yak-pack.sh`, **`release-github.sh`** (local build → GitHub Release) |
+| **scripts/** | `build.sh`, `read-version.sh`, `build-and-install.sh`, `yak-pack.sh`, **`release-github.sh`** |
 | **packaging/manifest.yml** | Yak package metadata |
 | **docs/** | Screenshot, SDK notes, **DEVELOPMENT.md** |
 | **LICENSE** | GNU GPL v3.0 (verbatim from [gnu.org](https://www.gnu.org/licenses/gpl-3.0.txt)) |

@@ -8,6 +8,16 @@
     Important: these properties must be set *before* MSBuild imports common props/targets,
     so we put them in Directory.Build.props (imported early) rather than inside a .csproj.
   -->
+  <!--
+    Single source of truth for release version (Yak, GH_AssemblyInfo, assembly attributes).
+    Bump only <Version> here for a new release; packaging/manifest.yml uses `version: $version`
+    so `yak build` infers the same number from the built .gha (McNeel Yak manifest docs).
+  -->
+  <PropertyGroup>
+    <Version>1.0.3</Version>
+    <!-- Avoid 1.0.3+gitsha in InformationalVersion so Grasshopper and Yak see a clean semver. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
   <PropertyGroup>
     <OutputPath>$(MSBuildThisFileDirectory)build/</OutputPath>
     <!-- Put intermediates under build/obj/<ProjectName>/ to avoid collisions and to keep NuGet/MSBuild consistent. -->

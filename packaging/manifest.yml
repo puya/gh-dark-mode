@@ -1,9 +1,9 @@
 # Yak package manifest for Rhino Package Manager.
-# Keep `version` in sync with `GHDarkModeInfo.Version` in src/GHDarkMode/GHDarkModeInfo.cs.
+# Version: use $version so `yak build` infers semver from the built GHA (same as Directory.Build.props <Version>).
 # After `./scripts/build.sh`, dist/ contains this file, GHDarkMode.gha, and the icon below for `yak build`.
 ---
 name: gh-dark-mode
-version: 1.0.3
+version: $version
 authors:
   - Puya Khalili
 description: >

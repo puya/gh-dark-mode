@@ -10,11 +10,11 @@
 #
 # Usage:
 #   ./scripts/release-github.sh v1.0.3
-#   ./scripts/release-github.sh     # uses Version from GHDarkModeInfo.cs → tag v1.0.x
+#   ./scripts/release-github.sh     # uses MSBuild <Version> (Directory.Build.props) via scripts/read-version.sh
 #
-# Bump GHDarkModeInfo.Version and packaging/manifest.yml before releasing if needed.
+# Bump version only in Directory.Build.props (<Version>) before a release; Yak uses manifest `version: $version`.
 # After a successful run, push the tag if it only exists locally:
-#   git push origin v1.0.3
+#   git push origin v1.2.3
 #
 
 set -e
@@ -25,15 +25,14 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 if [ -n "${1:-}" ]; then
   TAG="$1"
 else
-  INFO="$REPO_ROOT/src/GHDarkMode/GHDarkModeInfo.cs"
-  VER=$(sed -n 's/^[[:space:]]*public override string Version => "\([^"]*\)".*/\1/p' "$INFO" | head -1)
+  VER=$("$SCRIPT_DIR/read-version.sh")
   if [ -z "$VER" ]; then
-    echo "Usage: $0 <tag>   example: $0 v1.0.3"
-    echo "Could not read Version from $INFO"
+    echo "Usage: $0 <tag>   example: $0 v1.2.3"
+    echo "Could not read Version (run from repo root; see Directory.Build.props)."
     exit 1
   fi
   TAG="v${VER}"
-  echo "No tag passed; using $TAG from GHDarkModeInfo.Version"
+  echo "No tag passed; using $TAG from MSBuild Version (Directory.Build.props)"
 fi
 
 case "$TAG" in

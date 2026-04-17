@@ -237,8 +237,10 @@ Then copy `bin/GHDarkMode.dll` to Libraries as `GHDarkMode.gha` manually or by a
 | `src/GHDarkMode/GHDarkModeComponent.cs` | Single component: M (input), Out (output), SolveInstance (probe or future theme logic). |
 | `src/GHDarkMode.sln` | Solution (optional). |
 | `dist/GHDarkMode.gha` | Built distributable (output of `scripts/build.sh` / `scripts/build-and-install.sh`). **`dist/`** is gitignored. |
-| `packaging/manifest.yml` | Yak manifest (canonical copy in repo); **`version`** must match **`GHDarkModeInfo.Version`**. |
+| `packaging/manifest.yml` | Yak manifest (canonical copy in repo); **`version: $version`** filled by **`yak build`** from the **`.gha`**. |
+| `Directory.Build.props` | Repo root MSBuild props; **`<Version>`** is the single release semver for the plugin and Yak. |
 | `scripts/build.sh` | Build; populate **`dist/`** with `.gha`, **`manifest.yml`**, and **`gh-darkmode-main-a.png`** for Yak. |
+| `scripts/read-version.sh` | Prints **`<Version>`** via **`dotnet msbuild -getProperty:Version`** (no compile). |
 | `scripts/yak-pack.sh` | Runs **`build.sh`**, then **`yak build`** in **`dist/`** → **`*.yak`**. |
 | `scripts/release-github.sh` | Local **`build.sh`**, then **`gh release create`** / upload **`GHDarkMode.gha`**. |
 | `scripts/build-and-install.sh` | Build + install to Libraries (also refreshes **`dist/`** Yak files). |
@@ -249,7 +251,7 @@ Then copy `bin/GHDarkMode.dll` to Libraries as `GHDarkMode.gha` manually or by a
 
 **GitHub Actions** are **not** used to compile this plugin: hosted **Ubuntu** builds failed (e.g. `Microsoft.WindowsDesktop.App.WindowsForms` / Grasshopper package graph). Release **`.gha`** files are built on **Windows or Mac** with a normal Rhino 8 / .NET environment.
 
-Publish **`GHDarkMode.gha`** with **`./scripts/release-github.sh v1.0.x`** (see root **README.md**) or build locally and attach the file on the Releases page.
+Publish **`GHDarkMode.gha`** with **`./scripts/release-github.sh`** (optional **`vX.Y.Z`**; default tag comes from **`Directory.Build.props`**) — see root **README.md** — or build locally and attach the file on the Releases page.
 
 ---
 
@@ -259,8 +261,8 @@ For the Rhino **Package Manager**, packages are built with the **Yak** CLI and d
 
 ### 7.1 Source vs build output
 
-- **In repo (tracked):** **`packaging/manifest.yml`** — edit **`version`**, **`url`**, authors, description, keywords here.
-- **Version sync:** **`packaging/manifest.yml`** **`version`** must match **`GHDarkModeInfo.Version`** in **`src/GHDarkMode/GHDarkModeInfo.cs`** for every release.
+- **In repo (tracked):** **`packaging/manifest.yml`** — edit **`url`**, authors, description, keywords; keep **`version: $version`** so Yak infers semver from the assembly ([package manifest](https://developer.rhino3d.com/guides/yak/the-package-manifest/)).
+- **Version source of truth:** **`Directory.Build.props`** **`<Version>`** only. **`GHDarkModeInfo.Version`** reads the built assembly’s informational version; **`scripts/read-version.sh`** prints the same value without building.
 - **After `./scripts/build.sh` or `./scripts/build-and-install.sh`:** **`dist/`** (gitignored) contains everything Yak needs at the **top level**:
   - **`GHDarkMode.gha`**
   - **`manifest.yml`** (copy of **`packaging/manifest.yml`**)
@@ -270,7 +272,7 @@ Optional extras (e.g. **`misc/LICENSE.txt`**) can be added under **`dist/`** bef
 
 ### 7.2 Manifest reference
 
-- Required: **`name`**, **`version`**, **`authors`**, **`description`** ([Package manifest](https://developer.rhino3d.com/guides/yak/the-package-manifest/)).
+- Required: **`name`**, **`version`** (literal semver or **`$version`** inferred from plugin contents), **`authors`**, **`description`** ([Package manifest](https://developer.rhino3d.com/guides/yak/the-package-manifest/)).
 - Recommended: **`url`** (set to your GitHub or Food4Rhino page before publish), **`icon`**, **`keywords`**.
 - **`yak build`** may append a **`guid:`** keyword for package restore.
 
