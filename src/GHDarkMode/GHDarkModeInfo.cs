@@ -17,9 +17,9 @@ public class GHDarkModeInfo : GH_AssemblyInfo
 
     public override string Name => "GH Dark Mode";
     // Keep in sync with packaging/manifest.yml (Yak) for each release.
-    public override string Version => "1.0.2";
-    public override string AuthorName => "GH Dark Mode";
-    public override string AuthorContact => "";
+    public override string Version => "1.0.3";
+    public override string AuthorName => "Puya Khalili";
+    public override string AuthorContact => "https://github.com/puya";
     public override string Description =>
         "Dark mode for Grasshopper (Rhino 8, Mac and Windows). Great default dark theme; customize colors if you like.";
     public override Bitmap? Icon => CreateMoonIcon24();

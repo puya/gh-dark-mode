@@ -9,12 +9,12 @@
 #   - gh auth login  (https://cli.github.com/)
 #
 # Usage:
-#   ./scripts/release-github.sh v1.0.2
+#   ./scripts/release-github.sh v1.0.3
 #   ./scripts/release-github.sh     # uses Version from GHDarkModeInfo.cs → tag v1.0.x
 #
 # Bump GHDarkModeInfo.Version and packaging/manifest.yml before releasing if needed.
 # After a successful run, push the tag if it only exists locally:
-#   git push origin v1.0.2
+#   git push origin v1.0.3
 #
 
 set -e
@@ -28,7 +28,7 @@ else
   INFO="$REPO_ROOT/src/GHDarkMode/GHDarkModeInfo.cs"
   VER=$(sed -n 's/^[[:space:]]*public override string Version => "\([^"]*\)".*/\1/p' "$INFO" | head -1)
   if [ -z "$VER" ]; then
-    echo "Usage: $0 <tag>   example: $0 v1.0.2"
+    echo "Usage: $0 <tag>   example: $0 v1.0.3"
     echo "Could not read Version from $INFO"
     exit 1
   fi

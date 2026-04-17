@@ -66,12 +66,12 @@ Builds are **local** (your Rhino 8 / .NET install — same as **`build.sh`** on 
 3. Create the release and upload **`GHDarkMode.gha`**:
 
    ```bash
-   ./scripts/release-github.sh v1.0.2
+   ./scripts/release-github.sh v1.0.3
    ```
 
    That runs **`build.sh`**, then **`gh release create`** (or **`gh release upload --clobber`** if the release already exists).
 
-4. Push the tag when **`gh`** reports it: **`git push origin v1.0.2`**
+4. Push the tag when **`gh`** reports it: **`git push origin v1.0.3`**
 
 You can instead run **`./scripts/build.sh`** and attach **`dist/GHDarkMode.gha`** manually on the GitHub **Releases** page.
 
