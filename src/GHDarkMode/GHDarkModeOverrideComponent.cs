@@ -27,18 +27,20 @@ public class GHDarkModeOverrideComponent : GH_Component
 
     protected override void RegisterInputParams(GH_InputParamManager pManager)
     {
-        var target = new Param_Integer
-        {
-            Name = "Target",
-            NickName = "T",
-            Description = "Color key: favorites first, then all gh_drawing_color keys from embedded manifest.",
-        };
+        // Use AddIntegerParameter (then cast) so Grasshopper attaches the standard integer UI, including
+        // the named-value picker. A bare new Param_Integer() + AddParameter() can omit that wiring on
+        // some hosts (e.g. Mac), so the canvas shows only a numeric field with no dropdown.
+        int targetIdx = pManager.AddIntegerParameter(
+            "Target",
+            "T",
+            "Color key: favorites first, then all gh_drawing_color keys from embedded manifest.",
+            GH_ParamAccess.item,
+            0);
+        if (pManager[targetIdx] is not Param_Integer target)
+            throw new InvalidOperationException("Expected Param_Integer for Target input.");
 
         foreach (SkinKeysCatalog.SkinKeyEntry e in SkinKeysCatalog.GetMergedEntries())
             target.AddNamedValue(e.Label, e.Index);
-
-        target.SetPersistentData(0);
-        pManager.AddParameter(target);
 
         pManager.AddColourParameter("Color", "C", "Override color.", GH_ParamAccess.item, Color.FromArgb(255, 38, 38, 38));
         pManager.AddBooleanParameter("Enable", "E", "If false, override token output is empty.", GH_ParamAccess.item, true);

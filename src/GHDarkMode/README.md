@@ -31,7 +31,7 @@ Settings live under the Grasshopper plugin folder, e.g. `grasshopper_gui.xml` an
 
 ### GH Dark Mode Override
 
-- **Target** (`T`) — dropdown of skin keys: **favorites first**, then every `gh_drawing_color` key from the embedded `skin-keys-manifest.json` (regenerate with `scripts/extract_skin_keys_from_xml.py` from your `grasshopper_gui.xml` when needed).
+- **Target** (`T`) — named-value list of skin keys: **favorites first**, then every `gh_drawing_color` key from the embedded `skin-keys-manifest.json` (regenerate with `scripts/extract_skin_keys_from_xml.py` from your `grasshopper_gui.xml` when needed). Click **T** on the canvas to open the picker; if you still see only a plain integer after updating, reinstall the `.gha` and place a **new** component (old instances keep the previous parameter type).
 - **Color** (`C`), **Enable** (`E`) — as before.
 - **Custom key** (`K`, optional) — raw XML item name; when set, overrides **Target**.
 
