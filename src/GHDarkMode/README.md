@@ -19,20 +19,21 @@ Artifact only (no install): `./scripts/build.sh` → `dist/GHDarkMode.gha`. Rest
 ### GH Dark Mode
 
 - **M** — `true` = apply dark theme; `false` = restore **baseline** skin (snapshot from first run).
+- **OVR** — optional list: connect outputs from **GH Dark Mode Override** for per-key XML colors (same key as a built-in default replaces that default).
 - **R** — restore baseline if present, else factory reset `grasshopper_gui.xml`.
 - **Invert** — debug: invert all colors in the GUI XML (use sparingly; restore with **R** or **M=false**).
 - **Debug** — debug: assign high-contrast test colors (background keys skipped) to map XML keys to UI.
-- **Optional colors** — `BG`, `CF`, `CSF`, `CE`, `CNT`, `ST`, `CST`, `OF`, `OSF`, `WD`, `WSI`, `WSO`. Disconnect to use built-in defaults.
-- **Overrides (OVR)** — list: connect outputs from **GH Dark Mode Override** for per-key XML color patches after dark mode applies.
 
-**Out** — status plus summary of active optional overrides.
+Dark mode applies built-in XML colors for wires, normal/hidden std/sel edges and fills, etc.; use **GH Dark Mode Override** for anything else.
+
+**Out** — status and how many XML color keys were patched when dark mode runs.
 
 Settings live under the Grasshopper plugin folder, e.g. `grasshopper_gui.xml` and `ghdarkmode_baseline_gui.xml`.
 
 ### GH Dark Mode Override
 
 - **Target** (`T`) — named-value list of skin keys: **favorites first**, then every `gh_drawing_color` key from the embedded `skin-keys-manifest.json` (regenerate with `scripts/extract_skin_keys_from_xml.py` from your `grasshopper_gui.xml` when needed). Click **T** on the canvas to open the picker; if you still see only a plain integer after updating, reinstall the `.gha` and place a **new** component (old instances keep the previous parameter type).
-- **Color** (`C`), **Enable** (`E`) — as before.
+- **Color** (`C`) — override ARGB for the chosen key.
 - **Custom key** (`K`, optional) — raw XML item name; when set, overrides **Target**.
 
 Connect **Override** into **GH Dark Mode**’s **OVR** input.

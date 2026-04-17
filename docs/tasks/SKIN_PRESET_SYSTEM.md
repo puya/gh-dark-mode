@@ -31,7 +31,7 @@ Add a simple preset system so users can save custom color overrides from the GH 
 ## Scope (v1)
 
 - Save/load for existing override keys:
-  - `BG`, `CF`, `CSF`, `CE`, `CNT`, `ST`, `CST`, `OF`, `OSF`, `WD`, `WSI`, `WSO`
+  - Built-in dark XML keys + **OVR** tokens from **GH Dark Mode Override** (legacy optional main-component color inputs removed).
 - Keep fallback behavior:
   - missing key in preset -> use current dark default for that key.
 

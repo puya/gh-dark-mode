@@ -43,9 +43,8 @@ public class GHDarkModeOverrideComponent : GH_Component
             target.AddNamedValue(e.Label, e.Index);
 
         pManager.AddColourParameter("Color", "C", "Override color.", GH_ParamAccess.item, Color.FromArgb(255, 38, 38, 38));
-        pManager.AddBooleanParameter("Enable", "E", "If false, override token output is empty.", GH_ParamAccess.item, true);
         pManager.AddTextParameter("Custom key", "K", "Optional: raw XML item name (overrides Target when non-empty).", GH_ParamAccess.item);
-        pManager[3].Optional = true;
+        pManager[2].Optional = true;
     }
 
     protected override void RegisterOutputParams(GH_OutputParamManager pManager)
@@ -57,23 +56,14 @@ public class GHDarkModeOverrideComponent : GH_Component
     {
         int targetIndex = 0;
         Color color = Color.FromArgb(255, 38, 38, 38);
-        bool enabled = true;
 
         if (!da.GetData(0, ref targetIndex))
             return;
         if (!da.GetData(1, ref color))
             return;
-        da.GetData(2, ref enabled);
 
         string customKey = string.Empty;
-        da.GetData(3, ref customKey);
-
-        if (!enabled)
-        {
-            Message = "Off";
-            da.SetData(0, string.Empty);
-            return;
-        }
+        da.GetData(2, ref customKey);
 
         string key = !string.IsNullOrWhiteSpace(customKey)
             ? customKey.Trim()
