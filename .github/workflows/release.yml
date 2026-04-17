@@ -1,0 +1,47 @@
+# Build the plugin on GitHub-hosted runners (NuGet Grasshopper SDK; no Rhino install)
+# and publish GHDarkMode.gha to a GitHub Release when you push a version tag.
+#
+# Cut a release locally (requires git + GitHub auth):
+#   git tag v1.0.1 && git push origin v1.0.1
+#
+# Or create the tag in the GitHub UI, then push it.
+#
+# The workflow uses `gh release create` with GITHUB_TOKEN (no extra secrets).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "7.0.x"
+
+      - name: Restore and build
+        run: dotnet build src/GHDarkMode/GHDarkMode.csproj -c Release
+
+      - name: Assemble .gha
+        run: cp -f build/GHDarkMode.dll GHDarkMode.gha
+
+      - name: Create GitHub Release and upload .gha
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          gh release create "$TAG" \
+            GHDarkMode.gha \
+            --title "GH Dark Mode ${TAG}" \
+            --generate-notes
