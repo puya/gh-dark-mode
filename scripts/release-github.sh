@@ -2,11 +2,10 @@
 #
 # Build locally and attach GHDarkMode.gha to a GitHub Release (GitHub CLI).
 #
-# Why local: Grasshopper/Rhino SDK references and WindowsForms-related package
-# graph do not reliably build on linux GitHub-hosted runners for this project.
+# Why local: Grasshopper/Rhino SDK + NuGet graph do not reliably build on Linux CI.
 #
 # Prerequisites:
-#   - Rhino 8 + .NET 7 (same as ./scripts/build.sh)
+#   - Rhino 8 + .NET 7 on **macOS** (same as ./scripts/build.sh), or build **GHDarkMode.gha** on Windows and run only the `gh release` steps manually if you prefer.
 #   - gh auth login  (https://cli.github.com/)
 #
 # Usage:

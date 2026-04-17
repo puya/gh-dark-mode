@@ -7,10 +7,9 @@ version: 1.0.0
 authors:
   - GH Dark Mode
 description: >
-  Grasshopper 1 plugin for Rhino 8: toggle the Grasshopper GUI between dark and light themes
-  using GH_Skin and grasshopper_gui.xml, with optional per-key color overrides (Moonlight-style on Mac).
-# Set to your public repo or Food4Rhino page before publishing.
-url: "https://github.com/"
+  Grasshopper 1 plugin for Rhino 8 (Windows and Mac): toggle the Grasshopper GUI between dark and light
+  themes using GH_Skin and grasshopper_gui.xml, with optional per-key color overrides via companion components.
+url: "https://github.com/puya/GHDarkMode"
 icon: gh-darkmode-main-a.png
 keywords:
   - grasshopper
@@ -18,5 +17,6 @@ keywords:
   - theme
   - gui
   - skin
-  - moonlight
   - rhino-8
+  - windows
+  - mac

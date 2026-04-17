@@ -1,6 +1,6 @@
 # GH Dark Mode
 
-Grasshopper 1 plugin (Mac): dark/light GUI via `GH_Skin` and `grasshopper_gui.xml`.
+Grasshopper 1 plugin for **Rhino 8** (**Windows and Mac**): dark/light GUI via `GH_Skin` and `grasshopper_gui.xml`.
 
 Screenshot (repo root): [../docs/gh-darkmode-screenshot.jpg](../docs/gh-darkmode-screenshot.jpg) · Overview: [../../README.md](../../README.md)
 

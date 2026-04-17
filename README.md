@@ -2,7 +2,7 @@
 
 ## What it does
 
-**GH Dark Mode** is a Grasshopper 1 plugin for **Rhino 8** that switches the Grasshopper **canvas and UI** between a **dark theme** and your **saved “light” baseline**. It uses Grasshopper’s **`GH_Skin`** API and the same `grasshopper_gui.xml` skin file the app already uses, so changes persist across sessions.
+**GH Dark Mode** is a Grasshopper 1 plugin for **Rhino 8** on **Windows and Mac**. It switches the Grasshopper **canvas and UI** between a **dark theme** and your **saved “light” baseline**. It uses Grasshopper’s **`GH_Skin`** API and the same `grasshopper_gui.xml` skin file the app already uses, so changes persist across sessions.
 
 On the first run, the plugin stores a snapshot of your current skin as **`ghdarkmode_baseline_gui.xml`**. **Mode = false** restores that snapshot (your pre–dark-mode look). **Mode = true** applies a tuned dark theme and writes a set of default XML color overrides (wires, component fills/edges, etc.).
 
@@ -33,21 +33,33 @@ You may need to **restart Grasshopper** or reopen the definition for the canvas 
 
 ---
 
-## Build from source (Mac)
+## Build from source
 
-**Prerequisites:** Rhino 8 for Mac, .NET 7 SDK (or later).
+**Prerequisites:** Rhino 8, .NET 7 SDK (or later).
+
+**macOS** — from repo root:
 
 ```bash
 ./scripts/build-and-install.sh
 ```
 
-This builds **`dist/GHDarkMode.gha`** and copies it into your Grasshopper **Libraries** folder. Artifact only: `./scripts/build.sh`.
+Builds **`dist/GHDarkMode.gha`** and copies it into Grasshopper **Libraries**. Artifact only: `./scripts/build.sh`.
 
-**SDK / Rhino path:** [docs/SDK_VERSION_AND_COMPATIBILITY.md](docs/SDK_VERSION_AND_COMPATIBILITY.md)
+**Windows** — install **.NET 7 SDK**, then from repo root:
+
+```bat
+dotnet build src\GHDarkMode\GHDarkMode.csproj -c Release
+mkdir dist 2>nul
+copy /Y build\GHDarkMode.dll dist\GHDarkMode.gha
+```
+
+Copy **`dist\GHDarkMode.gha`** (or **`build\GHDarkMode.dll`** renamed to **`.gha`**) into Grasshopper’s **Libraries** folder (Grasshopper: **File → Special Folders → Components Libraries Folder**).
+
+**SDK / Rhino references:** [docs/SDK_VERSION_AND_COMPATIBILITY.md](docs/SDK_VERSION_AND_COMPATIBILITY.md)
 
 ### GitHub Releases (maintainers)
 
-Builds are **local** (Rhino 8 SDK on your machine — same as `./scripts/build.sh`). GitHub-hosted runners are **not** used: the Grasshopper NuGet graph can pull in Windows-only framework references that fail on Ubuntu, and the authoritative build here is against your installed Rhino anyway.
+Builds are **local** (your Rhino 8 / .NET install — same as **`build.sh`** on Mac, or **`dotnet build`** on Windows). GitHub-hosted runners are **not** used: the Grasshopper NuGet graph can break on Linux CI, and release binaries are built on real Rhino environments.
 
 1. Bump **`GHDarkModeInfo.Version`** and **`packaging/manifest.yml`** if needed; commit.
 2. Authenticate once: **`gh auth login`**

@@ -1,26 +1,23 @@
 # GH Dark Mode — Development Document
 
-This document records the approach, findings, progress, roadmap, API details, build/packaging, and references for the GH Dark Mode Grasshopper 1 plugin (Mac). It is the single source of truth for development implementation.
+This document records the approach, findings, progress, roadmap, API details, build/packaging, and references for the **GH Dark Mode** Grasshopper 1 plugin (**Rhino 8**, **Windows and Mac**). It is the single source of truth for development implementation.
 
 ---
 
 ## 1. Project overview
 
 - **Name:** GH Dark Mode (repository: GHDarkMode)
-- **Platform:** Rhino 8 for Mac, Grasshopper 1 (not Grasshopper 2)
-- **Purpose:** Toggle Grasshopper’s GUI between **Dark Mode** and **Light Mode** by writing to the same mechanism the Windows plugin [Moonlight](https://food4rhino.com/en/app/moonlight) (by ekimroyrp) uses: the **GH_Skin** API and **grasshopper_gui.xml**.
+- **Platform:** Rhino 8 (**Windows and macOS**), Grasshopper 1 (not Grasshopper 2)
+- **Purpose:** Toggle Grasshopper’s GUI between **dark** and **light** themes via the **GH_Skin** API and **grasshopper_gui.xml** (same persistence model as the stock Grasshopper skin system).
 - **Status:** Dark and light themes implemented (apply via GH_Skin and SaveSkin). Some aspects (e.g. grid lines) may not fully come through; see §3.3 for planned improvements (save user theme, grid/layout in dark, skin system).
 
 ---
 
 ## 2. Approach and findings
 
-### 2.1 Original Moonlight (Windows)
+### 2.1 Prior art
 
-- **Format:** Single .gha (Windows PE32 .NET assembly, 32-bit). Does not run on Mac.
-- **Behavior:** One component under Params → Util. Input **M** (Mode): boolean/button. When true → apply dark theme; when false → apply default light theme. Persistence via **grasshopper_gui.xml** (Grasshopper settings folder). No outputs in the original; we added **Out** for debugging.
-- **Tech:** C#, uses **GH_Skin** (namespace `Grasshopper.GUI.Canvas`). Reads/writes `grasshopper_gui.xml` via `LoadSkin()` and `SaveSkin()`.
-- **Source:** Closed-source. No Mac build available; no open-source clone found. We reimplement from the public API and behavior description.
+- Other dark-mode plugins for Grasshopper have used the same public surface: **GH_Skin** and **`grasshopper_gui.xml`**. This project is an independent implementation for **Rhino 8** on **Windows and Mac** (single **net7.0** `.gha`).
 
 ### 2.2 Why .gha and not .dll
 
@@ -30,14 +27,12 @@ This document records the approach, findings, progress, roadmap, API details, bu
 ### 2.3 SDK version compatibility
 
 - Grasshopper loads a .gha only if it was **built against the same or an older minor SDK version** than the one running (e.g. Local SDK 8.15 rejects Referenced SDK 8.28).
-- **Solution:** Build against the **assemblies shipped with the user’s Rhino 8 app** instead of a fixed NuGet version. Path used:  
-  `$(RhinoAppPath)/Contents/Frameworks/RhCore.framework/Versions/A/Resources/ref/net48/`  
-  Default `RhinoAppPath`: `/Applications/Rhino 8.app`. Override with `/p:RhinoAppPath="..."` if needed.
+- **Solution:** Build against the **assemblies shipped with your Rhino 8 app** when possible. The `.csproj` default **`RhinoRefPath`** is **macOS-shaped** (`Rhino 8.app/.../ref/net48`). **Windows** developers typically get the **NuGet Grasshopper** reference instead (no Mac path on disk), unless they extend the project to set **`RhinoRefPath`** to their Windows **ref/net48** folder—see **SDK_VERSION_AND_COMPATIBILITY.md**.
 - **Fallback:** If that path does not exist (e.g. CI), the project uses NuGet **Grasshopper 8.26.25349.19001**; that build runs only on Rhino 8.26+.
 
 ### 2.4 Probe-first strategy
 
-- Before implementing themes, we added a **probe** that calls `GH_Skin.LoadSkin()`, reads `GH_Skin.canvas_back`, and calls `GH_Skin.SaveSkin()` to confirm the API exists and works on Mac. No colors are changed in the probe; the **Out** parameter and component message report success or failure.
+- Early development used a **probe** that calls `GH_Skin.LoadSkin()`, reads `GH_Skin.canvas_back`, and calls `GH_Skin.SaveSkin()` to confirm the API exists on the target OS. No colors are changed in the probe; the **Out** parameter and component message report success or failure.
 
 ---
 
@@ -187,7 +182,7 @@ Full list: [GH_Skin Class](https://developer.rhino3d.com/api/grasshopper/html/T_
 
 ### 5.1 Prerequisites
 
-- .NET 7 SDK (or later); Rhino 8 for Mac with Grasshopper 1.
+- .NET 7 SDK (or later); Rhino 8 with Grasshopper 1 (**Windows or Mac**).
 - Rhino 8 app at default path `/Applications/Rhino 8.app` (or set `RhinoAppPath`).
 
 ### 5.2 Commands
@@ -251,7 +246,7 @@ Then copy `bin/GHDarkMode.dll` to Libraries as `GHDarkMode.gha` manually or by a
 
 ## 6. GitHub Releases (binary download)
 
-**GitHub Actions** are **not** used to compile this plugin: hosted **Ubuntu** builds failed (e.g. `Microsoft.WindowsDesktop.App.WindowsForms` / Grasshopper package graph), and the intended reference SDK is **Rhino 8 on the author’s machine** anyway.
+**GitHub Actions** are **not** used to compile this plugin: hosted **Ubuntu** builds failed (e.g. `Microsoft.WindowsDesktop.App.WindowsForms` / Grasshopper package graph). Release **`.gha`** files are built on **Windows or Mac** with a normal Rhino 8 / .NET environment.
 
 Publish **`GHDarkMode.gha`** with **`./scripts/release-github.sh v1.0.x`** (see root **README.md**) or build locally and attach the file on the Releases page.
 
@@ -359,4 +354,4 @@ The output **`*.yak`** name includes a **distribution tag** (Rhino/Grasshopper v
 ## 10. Changelog (summary)
 
 - **Initial:** Scaffold, probe component (LoadSkin / canvas_back / SaveSkin), build script, install as .gha, SDK fix (Rhino app refs), Out parameter, .gitignore, README, GitHub repo (GHDarkMode).
-- **Ongoing:** Theme tweaks, Food4Rhino listing, multi-platform Yak pushes if you support Windows Rhino 8 with the same **`.gha`**.
+- **Ongoing:** Theme tweaks, Food4Rhino listing; the same **`.gha`** is used on **Windows and Mac** Rhino 8.
