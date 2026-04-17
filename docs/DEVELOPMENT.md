@@ -64,7 +64,7 @@ This document records the approach, findings, progress, roadmap, API details, bu
 | Item | Notes |
 |------|------|
 | Icons | 24×24 PNG + alpha embedded in `.gha` (see `icons/`). |
-| Packaging (Yak) | **`packaging/manifest.yml`** + **`scripts/yak-pack.sh`**; see §6. |
+| Packaging (Yak) | **`packaging/manifest.yml`** + **`scripts/yak-pack.sh`**; see §7. |
 | **Save user theme before dark** | Implemented in baseline snapshot form: on first run, the plugin copies `grasshopper_gui.xml` to `ghdarkmode_baseline_gui.xml` and uses it as the restore target when switching back to “light”. |
 | **Dark mode: grid and layout** | See §3.3: dark mode should set grid spacing and other non-color settings so they are visible/consistent. |
 | **Skin system** | See §3.3: move from hardcoded values to a skin system (config/serialized themes). |
@@ -244,15 +244,24 @@ Then copy `bin/GHDarkMode.dll` to Libraries as `GHDarkMode.gha` manually or by a
 | `packaging/manifest.yml` | Yak manifest (canonical copy in repo); **`version`** must match **`GHDarkModeInfo.Version`**. |
 | `scripts/build.sh` | Build; populate **`dist/`** with `.gha`, **`manifest.yml`**, and **`gh-darkmode-main-a.png`** for Yak. |
 | `scripts/yak-pack.sh` | Runs **`build.sh`**, then **`yak build`** in **`dist/`** → **`*.yak`**. |
+| `scripts/release-github.sh` | Local **`build.sh`**, then **`gh release create`** / upload **`GHDarkMode.gha`**. |
 | `scripts/build-and-install.sh` | Build + install to Libraries (also refreshes **`dist/`** Yak files). |
 
 ---
 
-## 6. Packaging and distribution (Yak)
+## 6. GitHub Releases (binary download)
+
+**GitHub Actions** are **not** used to compile this plugin: hosted **Ubuntu** builds failed (e.g. `Microsoft.WindowsDesktop.App.WindowsForms` / Grasshopper package graph), and the intended reference SDK is **Rhino 8 on the author’s machine** anyway.
+
+Publish **`GHDarkMode.gha`** with **`./scripts/release-github.sh v1.0.x`** (see root **README.md**) or build locally and attach the file on the Releases page.
+
+---
+
+## 7. Packaging and distribution (Yak)
 
 For the Rhino **Package Manager**, packages are built with the **Yak** CLI and described by **`manifest.yml`**.
 
-### 6.1 Source vs build output
+### 7.1 Source vs build output
 
 - **In repo (tracked):** **`packaging/manifest.yml`** — edit **`version`**, **`url`**, authors, description, keywords here.
 - **Version sync:** **`packaging/manifest.yml`** **`version`** must match **`GHDarkModeInfo.Version`** in **`src/GHDarkMode/GHDarkModeInfo.cs`** for every release.
@@ -263,13 +272,13 @@ For the Rhino **Package Manager**, packages are built with the **Yak** CLI and d
 
 Optional extras (e.g. **`misc/LICENSE.txt`**) can be added under **`dist/`** before **`yak build`** if you want them inside the package.
 
-### 6.2 Manifest reference
+### 7.2 Manifest reference
 
 - Required: **`name`**, **`version`**, **`authors`**, **`description`** ([Package manifest](https://developer.rhino3d.com/guides/yak/the-package-manifest/)).
 - Recommended: **`url`** (set to your GitHub or Food4Rhino page before publish), **`icon`**, **`keywords`**.
 - **`yak build`** may append a **`guid:`** keyword for package restore.
 
-### 6.3 Build the `.yak` file
+### 7.3 Build the `.yak` file
 
 From repo root:
 
@@ -292,14 +301,14 @@ Platform-specific packages (optional):
 
 The output **`*.yak`** name includes a **distribution tag** (Rhino/Grasshopper version + platform) inferred from the built **`.gha`**. See [Anatomy of a package](https://developer.rhino3d.com/guides/yak/the-anatomy-of-a-package/).
 
-### 6.4 Publish
+### 7.4 Publish
 
 - [Pushing a package to the server](https://developer.rhino3d.com/guides/yak/pushing-a-package-to-the-server): authenticate with Yak, then **`yak push`** the **`.yak`** file(s).
 - Food4Rhino and other listings are separate: create a product page and point users at Package Manager and/or direct downloads as you prefer.
 
 ---
 
-## 7. Important identifiers (quick reference)
+## 8. Important identifiers (quick reference)
 
 | What | Name / value |
 |------|------------------|
@@ -318,36 +327,36 @@ The output **`*.yak`** name includes a **distribution tag** (Rhino/Grasshopper v
 
 ---
 
-## 8. References
+## 9. References
 
-### 8.1 Grasshopper API
+### 9.1 Grasshopper API
 
 - [GH_Skin Class](https://developer.rhino3d.com/api/grasshopper/html/T_Grasshopper_GUI_Canvas_GH_Skin.htm)
 - [GH_Skin.LoadSkin](https://developer.rhino3d.com/api/grasshopper/html/M_Grasshopper_GUI_Canvas_GH_Skin_LoadSkin.htm)
 - [GH_Skin.SaveSkin](https://developer.rhino3d.com/api/grasshopper/html/M_Grasshopper_GUI_Canvas_GH_Skin_SaveSkin.htm)
 - [GH_AssemblyInfo](https://developer.rhino3d.com/api/grasshopper/html/T_Grasshopper_Kernel_GH_AssemblyInfo.htm)
 
-### 8.2 Mac development
+### 9.2 Mac development
 
 - [Installing Tools (Mac)](https://developer.rhino3d.com/guides/grasshopper/installing-tools-mac/)
 - [Your First Component (Mac)](https://developer.rhino3d.com/guides/grasshopper/your-first-component-mac/)
 - [Using NuGet](https://developer.rhino3d.com/guides/rhinocommon/using-nuget/) (RhinoCommon / Grasshopper packages)
 
-### 8.3 Packaging (Yak)
+### 9.3 Packaging (Yak)
 
 - [The Anatomy of a Package](https://developer.rhino3d.com/guides/yak/the-anatomy-of-a-package/)
 - [Creating a Grasshopper Plug-In Package](https://developer.rhino3d.com/guides/yak/creating-a-grasshopper-plugin-package/)
 - [The Package Manifest](https://developer.rhino3d.com/guides/yak/the-package-manifest/) (manifest.yml reference)
 - [Pushing a Package to the Server](https://developer.rhino3d.com/guides/yak/pushing-a-package-to-the-server/)
 
-### 8.4 In-repo docs
+### 9.4 In-repo docs
 
 - **docs/SDK_VERSION_AND_COMPATIBILITY.md** — Why we reference the Rhino app SDK and how to override the path.
 - **README.md** — Repo overview, quick start, status.
 
 ---
 
-## 9. Changelog (summary)
+## 10. Changelog (summary)
 
 - **Initial:** Scaffold, probe component (LoadSkin / canvas_back / SaveSkin), build script, install as .gha, SDK fix (Rhino app refs), Out parameter, .gitignore, README, GitHub repo (GHDarkMode).
 - **Ongoing:** Theme tweaks, Food4Rhino listing, multi-platform Yak pushes if you support Windows Rhino 8 with the same **`.gha`**.
