@@ -9,8 +9,9 @@ authors:
 description: >
   Dark mode for Grasshopper in Rhino 8, on Mac and Windows. Applies a polished dark look by default,
   and you can switch back to your normal theme anytime. Optional components let you customize colors
-  when you want the UI exactly your way.
-url: "https://github.com/puya/GHDarkMode"
+  when you want the UI exactly your way. Home page (source and releases):
+  https://github.com/puya/gh-dark-mode
+url: "https://github.com/puya/gh-dark-mode"
 icon: gh-darkmode-main-a.png
 keywords:
   - grasshopper
