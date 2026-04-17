@@ -10,6 +10,7 @@ This document records the approach, findings, progress, roadmap, API details, bu
 - **Platform:** Rhino 8 (**Windows and macOS**), Grasshopper 1 (not Grasshopper 2)
 - **Purpose:** Toggle Grasshopper’s GUI between **dark** and **light** themes via the **GH_Skin** API and **grasshopper_gui.xml** (same persistence model as the stock Grasshopper skin system).
 - **Status:** Dark and light themes implemented (apply via GH_Skin and SaveSkin). Some aspects (e.g. grid lines) may not fully come through; see §3.3 for planned improvements (save user theme, grid/layout in dark, skin system).
+- **License:** Open source under **GNU GPL v3.0** — full text in repository root **LICENSE** (verbatim from gnu.org). SPDX: **GPL-3.0-or-later** (standard license terms). **Rhino/Grasshopper** remain proprietary; the GPL applies to this plugin’s sources and your distribution of builds derived from them.
 
 ---
 
@@ -52,7 +53,7 @@ This document records the approach, findings, progress, roadmap, API details, bu
 | Build script | `scripts/build-and-install.sh`: `dotnet build -c Release`, copy `bin/GHDarkMode.dll` → Libraries as `GHDarkMode.gha`. |
 | SDK compatibility | Reference Rhino app `ref/net48` (Grasshopper, GH_IO, RhinoCommon); fallback NuGet 8.26. |
 | Optional output | **Out** (text) for routing full status to a Panel. |
-| Repo setup | .gitignore, README, private GitHub repo (GHDarkMode). |
+| Repo setup | .gitignore, README, public GitHub repo (GHDarkMode), **LICENSE** (GPL-3.0). |
 
 ### 3.2 Remaining
 
@@ -351,7 +352,15 @@ The output **`*.yak`** name includes a **distribution tag** (Rhino/Grasshopper v
 
 ---
 
-## 10. Changelog (summary)
+## 10. License (distribution)
 
-- **Initial:** Scaffold, probe component (LoadSkin / canvas_back / SaveSkin), build script, install as .gha, SDK fix (Rhino app refs), Out parameter, .gitignore, README, GitHub repo (GHDarkMode).
+- **Full text:** **LICENSE** at repo root (downloaded from [https://www.gnu.org/licenses/gpl-3.0.txt](https://www.gnu.org/licenses/gpl-3.0.txt)); do not edit the license text itself.
+- **Copyright:** Puya Khalili; detailed authorship is in **git history**.
+- **Plugin vs host:** GPLv3 governs **this repository** (source, embedded resources, scripts, docs you ship with it). It does **not** change McNeel’s terms for Rhino or Grasshopper. Distributors who publish modified binaries must comply with GPLv3 (e.g. source offer / corresponding source).
+
+---
+
+## 11. Changelog (summary)
+
+- **Initial:** Scaffold, probe component (LoadSkin / canvas_back / SaveSkin), build script, install as .gha, SDK fix (Rhino app refs), Out parameter, .gitignore, README, GitHub repo (GHDarkMode), GPLv3 **LICENSE**.
 - **Ongoing:** Theme tweaks, Food4Rhino listing; the same **`.gha`** is used on **Windows and Mac** Rhino 8.

@@ -2,6 +2,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
+    <!-- SPDX: matches root LICENSE (GNU GPL v3 — standard FSF text includes “or any later version”). -->
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <Authors>Puya Khalili</Authors>
     <RootNamespace>GHDarkMode</RootNamespace>
     <AssemblyName>GHDarkMode</AssemblyName>
     <OutputType>Library</OutputType>

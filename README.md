@@ -92,10 +92,13 @@ You can instead run **`./scripts/build.sh`** and attach **`dist/GHDarkMode.gha`*
 | **scripts/** | `build.sh`, `build-and-install.sh`, `yak-pack.sh`, **`release-github.sh`** (local build → GitHub Release) |
 | **packaging/manifest.yml** | Yak package metadata |
 | **docs/** | Screenshot, SDK notes, **DEVELOPMENT.md** |
+| **LICENSE** | GNU GPL v3.0 (verbatim from [gnu.org](https://www.gnu.org/licenses/gpl-3.0.txt)) |
 | **REPLICATION_SPEC.md** | Historical spec for the skin / `GH_Skin` approach |
 
 ---
 
 ## License
 
-Provided for use with Rhino and Grasshopper.
+Copyright © Puya Khalili. This project is open source under the **GNU General Public License v3.0** (standard FSF text: you may use **version 3** or **any later version** published by the FSF — see [LICENSE](LICENSE)). Source is in this repository; if you distribute a modified **`.gha`**, GPLv3 requires you to make corresponding source available under the same license.
+
+**Rhino / Grasshopper** remain **McNeel**’s proprietary software; this license applies to **GH Dark Mode**’s own code and assets in this repo, not to the host application.
