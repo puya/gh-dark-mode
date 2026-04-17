@@ -1,0 +1,22 @@
+# Yak package manifest for Rhino Package Manager.
+# Keep `version` in sync with `GHDarkModeInfo.Version` in src/GHDarkMode/GHDarkModeInfo.cs.
+# After `./scripts/build.sh`, dist/ contains this file, GHDarkMode.gha, and the icon below for `yak build`.
+---
+name: gh-dark-mode
+version: 1.0.0
+authors:
+  - GH Dark Mode
+description: >
+  Grasshopper 1 plugin for Rhino 8: toggle the Grasshopper GUI between dark and light themes
+  using GH_Skin and grasshopper_gui.xml, with optional per-key color overrides (Moonlight-style on Mac).
+# Set to your public repo or Food4Rhino page before publishing.
+url: "https://github.com/"
+icon: gh-darkmode-main-a.png
+keywords:
+  - grasshopper
+  - dark-mode
+  - theme
+  - gui
+  - skin
+  - moonlight
+  - rhino-8

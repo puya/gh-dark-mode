@@ -63,8 +63,8 @@ This document records the approach, findings, progress, roadmap, API details, bu
 
 | Item | Notes |
 |------|------|
-| Icons | Optional: 24×24 icon(s) for component and/or assembly. |
-| Packaging (Yak) | Optional: create a .yak package for distribution via Rhino Package Manager (see §6). |
+| Icons | 24×24 PNG + alpha embedded in `.gha` (see `icons/`). |
+| Packaging (Yak) | **`packaging/manifest.yml`** + **`scripts/yak-pack.sh`**; see §6. |
 | **Save user theme before dark** | Implemented in baseline snapshot form: on first run, the plugin copies `grasshopper_gui.xml` to `ghdarkmode_baseline_gui.xml` and uses it as the restore target when switching back to “light”. |
 | **Dark mode: grid and layout** | See §3.3: dark mode should set grid spacing and other non-color settings so they are visible/consistent. |
 | **Skin system** | See §3.3: move from hardcoded values to a skin system (config/serialized themes). |
@@ -240,56 +240,62 @@ Then copy `bin/GHDarkMode.dll` to Libraries as `GHDarkMode.gha` manually or by a
 | `src/GHDarkMode/GHDarkModeInfo.cs` | Assembly metadata (GH_AssemblyInfo). |
 | `src/GHDarkMode/GHDarkModeComponent.cs` | Single component: M (input), Out (output), SolveInstance (probe or future theme logic). |
 | `src/GHDarkMode.sln` | Solution (optional). |
-| `dist/GHDarkMode.gha` | Built distributable artifact (output of `scripts/build.sh` / `scripts/build-and-install.sh`). |
-| `scripts/build.sh` | Build and write `dist/GHDarkMode.gha` (no install). |
-| `scripts/build-and-install.sh` | Build + install to Libraries. |
+| `dist/GHDarkMode.gha` | Built distributable (output of `scripts/build.sh` / `scripts/build-and-install.sh`). **`dist/`** is gitignored. |
+| `packaging/manifest.yml` | Yak manifest (canonical copy in repo); **`version`** must match **`GHDarkModeInfo.Version`**. |
+| `scripts/build.sh` | Build; populate **`dist/`** with `.gha`, **`manifest.yml`**, and **`gh-darkmode-main-a.png`** for Yak. |
+| `scripts/yak-pack.sh` | Runs **`build.sh`**, then **`yak build`** in **`dist/`** → **`*.yak`**. |
+| `scripts/build-and-install.sh` | Build + install to Libraries (also refreshes **`dist/`** Yak files). |
 
 ---
 
 ## 6. Packaging and distribution (Yak)
 
-For distribution via the Rhino Package Manager (Yak), use the following structure and workflow.
+For the Rhino **Package Manager**, packages are built with the **Yak** CLI and described by **`manifest.yml`**.
 
-### 6.1 Package layout
+### 6.1 Source vs build output
 
-- **.gha** (and any **.dll** if needed) must be in the **top-level** of the package (or in a framework-specific folder for multi-targeting). Grasshopper discovers only those.
-- Example minimal layout:
+- **In repo (tracked):** **`packaging/manifest.yml`** — edit **`version`**, **`url`**, authors, description, keywords here.
+- **Version sync:** **`packaging/manifest.yml`** **`version`** must match **`GHDarkModeInfo.Version`** in **`src/GHDarkMode/GHDarkModeInfo.cs`** for every release.
+- **After `./scripts/build.sh` or `./scripts/build-and-install.sh`:** **`dist/`** (gitignored) contains everything Yak needs at the **top level**:
+  - **`GHDarkMode.gha`**
+  - **`manifest.yml`** (copy of **`packaging/manifest.yml`**)
+  - **`gh-darkmode-main-a.png`** (Package Manager icon; name must match **`icon:`** in the manifest)
 
-```
-dist/
-├── GHDarkMode.gha
-├── manifest.yml
-├── icon.png          (optional; referenced in manifest)
-└── misc/
-    ├── README.md
-    └── LICENSE.txt
-```
+Optional extras (e.g. **`misc/LICENSE.txt`**) can be added under **`dist/`** before **`yak build`** if you want them inside the package.
 
-### 6.2 Manifest (manifest.yml)
+### 6.2 Manifest reference
 
-- **name**, **version**, **authors**, **description**, **url** are required/expected.
-- **icon:** optional; e.g. `icon.png`.
-- **keywords:** optional; can include component GUID for restore.
-- Generate a skeleton with Yak: from the dist folder run `yak spec` (Mac: use the Yak binary from the Rhino app, e.g. `/Applications/Rhino 8.app/Contents/Resources/bin/yak`).
+- Required: **`name`**, **`version`**, **`authors`**, **`description`** ([Package manifest](https://developer.rhino3d.com/guides/yak/the-package-manifest/)).
+- Recommended: **`url`** (set to your GitHub or Food4Rhino page before publish), **`icon`**, **`keywords`**.
+- **`yak build`** may append a **`guid:`** keyword for package restore.
 
-### 6.3 Build package (Mac)
+### 6.3 Build the `.yak` file
+
+From repo root:
 
 ```bash
-# From the dist folder that contains manifest.yml and GHDarkMode.gha
-/Applications/Rhino\ 8.app/Contents/Resources/bin/yak build
+./scripts/yak-pack.sh
 ```
 
-- Produces a **.yak** file. The filename includes a **distribution tag** (e.g. `rh8_15-mac` or `rh8_15-any`) inferred from the referenced Grasshopper/RhinoCommon version and optional `--platform mac` (or `win`, or `any`).
-- For Mac-only: use `--platform mac` if supported by your Yak version.
+This runs **`scripts/build.sh`**, then **`yak build`** inside **`dist/`**. Override the Yak executable if needed:
 
-### 6.4 Distribution tags
+```bash
+YAK="/Applications/Rhino 8.app/Contents/Resources/bin/yak" ./scripts/yak-pack.sh
+```
 
-- Format: `rh<version>-<platform>`, e.g. `rh8_15-mac`, `rh8-mac`, `any-any`.
-- Ensures the package is offered only to compatible Rhino/Grasshopper versions and platforms. See [The Anatomy of a Package](https://developer.rhino3d.com/guides/yak/the-anatomy-of-a-package/).
+Platform-specific packages (optional):
 
-### 6.5 Publish
+```bash
+./scripts/yak-pack.sh --platform mac
+./scripts/yak-pack.sh --platform win
+```
 
-- [Pushing a package to the server](https://developer.rhino3d.com/guides/yak/pushing-a-package-to-the-server): authenticate with Yak, then push the .yak file.
+The output **`*.yak`** name includes a **distribution tag** (Rhino/Grasshopper version + platform) inferred from the built **`.gha`**. See [Anatomy of a package](https://developer.rhino3d.com/guides/yak/the-anatomy-of-a-package/).
+
+### 6.4 Publish
+
+- [Pushing a package to the server](https://developer.rhino3d.com/guides/yak/pushing-a-package-to-the-server): authenticate with Yak, then **`yak push`** the **`.yak`** file(s).
+- Food4Rhino and other listings are separate: create a product page and point users at Package Manager and/or direct downloads as you prefer.
 
 ---
 
@@ -344,4 +350,4 @@ dist/
 ## 9. Changelog (summary)
 
 - **Initial:** Scaffold, probe component (LoadSkin / canvas_back / SaveSkin), build script, install as .gha, SDK fix (Rhino app refs), Out parameter, .gitignore, README, GitHub repo (GHDarkMode).
-- **Next:** Implement dark and light theme in `SolveInstance` using the GH_Skin field list above and `SaveSkin()`; optionally add icons and Yak package for distribution.
+- **Ongoing:** Theme tweaks, Food4Rhino listing, multi-platform Yak pushes if you support Windows Rhino 8 with the same **`.gha`**.

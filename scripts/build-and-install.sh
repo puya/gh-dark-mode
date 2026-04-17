@@ -69,6 +69,8 @@ echo "Preparing dist/ artifact..."
 mkdir -p "$DIST_DIR"
 # Grasshopper loads add-ons by .gha extension only; .gha is just a .NET assembly.
 cp -f "$BUILD_DIR/GHDarkMode.dll" "$DIST_DIR/GHDarkMode.gha"
+cp -f "$REPO_ROOT/packaging/manifest.yml" "$DIST_DIR/manifest.yml"
+cp -f "$REPO_ROOT/icons/gh-darkmode-main-a.png" "$DIST_DIR/gh-darkmode-main-a.png"
 
 echo "Installing to Grasshopper Libraries..."
 mkdir -p "$LIBRARIES"

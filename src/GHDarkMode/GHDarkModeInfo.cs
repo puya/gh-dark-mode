@@ -16,6 +16,7 @@ public class GHDarkModeInfo : GH_AssemblyInfo
     public GHDarkModeInfo() { }
 
     public override string Name => "GH Dark Mode";
+    // Keep in sync with packaging/manifest.yml (Yak) for each release.
     public override string Version => "1.0.0";
     public override string AuthorName => "GH Dark Mode (Mac)";
     public override string AuthorContact => "";

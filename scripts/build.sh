@@ -5,6 +5,7 @@
 #
 # Output:
 #   dist/GHDarkMode.gha
+#   dist/manifest.yml, dist/gh-darkmode-main-a.png (Yak; see scripts/yak-pack.sh)
 #
 
 set -e
@@ -25,4 +26,8 @@ mkdir -p "$DIST_DIR"
 # Grasshopper loads add-ons by .gha extension only; .gha is just a .NET assembly.
 cp -f "$BUILD_DIR/GHDarkMode.dll" "$DIST_DIR/GHDarkMode.gha"
 
-echo "Done: $DIST_DIR/GHDarkMode.gha"
+# Yak / Package Manager (canonical manifest in packaging/)
+cp -f "$REPO_ROOT/packaging/manifest.yml" "$DIST_DIR/manifest.yml"
+cp -f "$REPO_ROOT/icons/gh-darkmode-main-a.png" "$DIST_DIR/gh-darkmode-main-a.png"
+
+echo "Done: $DIST_DIR/GHDarkMode.gha (+ manifest and icon for yak build)"
