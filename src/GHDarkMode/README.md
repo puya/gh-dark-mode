@@ -21,12 +21,13 @@ Artifact only (no install): `./scripts/build.sh` → `dist/GHDarkMode.gha`. Rest
 - **M** — `true` = apply dark theme; `false` = restore **baseline** skin (snapshot from first run).
 - **OVR** — optional list: connect outputs from **GH Dark Mode Override** for per-key XML colors (same key as a built-in default replaces that default).
 - **R** — restore baseline if present, else factory reset `grasshopper_gui.xml`.
-- **Invert** — debug: invert all colors in the GUI XML (use sparingly; restore with **R** or **M=false**).
-- **Debug** — debug: assign high-contrast test colors (background keys skipped) to map XML keys to UI.
+- **Invert** (`I`) — debug: invert all colors in the GUI XML (use sparingly; restore with **R** or **M=false**).
 
 Dark mode applies built-in XML colors for wires, normal/hidden std/sel edges and fills, etc.; use **GH Dark Mode Override** for anything else.
 
-**Out** — status and how many XML color keys were patched when dark mode runs.
+**Out** — status, XML write count, any keys missing from XML, and the full merged override list (built-in + **OVR**) after a dark apply.
+
+**Icons** — embedded 48×48 BMPs: main component toggles moon vs moon+gears with last dark/light solve; override uses moon+gears.
 
 Settings live under the Grasshopper plugin folder, e.g. `grasshopper_gui.xml` and `ghdarkmode_baseline_gui.xml`.
 

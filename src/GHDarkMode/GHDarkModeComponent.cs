@@ -5,17 +5,18 @@
  *   - M (bool): true = Dark, false = Light.
  *   - OVR (text list): optional per-key XML colors from GH Dark Mode Override.
  *   - R (bool): true = reset to factory GUI (restore baseline or delete grasshopper_gui.xml).
+ *   - I (bool): optional invert-all-colors debug on grasshopper_gui.xml.
  * Output:
- *   - Out (text): status message.
+ *   - Out (text): status, patch counts, merged override listing after dark apply.
  * Uses GH_Skin API and grasshopper_gui.xml; settings persist across sessions.
  */
 
 using System;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using System.Text;
 using System.Xml.Linq;
 using Grasshopper;
 using Grasshopper.Kernel;
@@ -34,6 +35,11 @@ public class GHDarkModeComponent : GH_Component
     /// </summary>
     private const string BaselineSkinFileName = "ghdarkmode_baseline_gui.xml";
 
+    /// <summary>
+    /// Drives which 48×48 icon is shown: plain moon (light / idle) vs moon+gears (last solve applied dark).
+    /// </summary>
+    private bool _lastModeWasDark;
+
     public GHDarkModeComponent()
         : base(
             name: "GH Dark Mode",
@@ -46,24 +52,24 @@ public class GHDarkModeComponent : GH_Component
 
     public override Guid ComponentGuid => new Guid("B1C2D3E4-F5A6-4780-BCDE-F12345678901");
 
-    protected override Bitmap Icon => IconFactory.Moon24;
+    protected override Bitmap Icon => _lastModeWasDark ? ComponentIcons.MoonGears48 : ComponentIcons.Moon48;
 
     protected override void RegisterInputParams(GH_InputParamManager pManager)
     {
-        pManager.AddBooleanParameter("M", "Mode", "True = Dark Mode, False = Light Mode. Use a Button or toggle to apply.", GH_ParamAccess.item, false);
+        // Grasshopper: first argument = full name, second = nickname (canvas abbreviation).
+        pManager.AddBooleanParameter("Mode", "M", "True = Dark Mode, False = Light Mode. Use a Button or toggle to apply.", GH_ParamAccess.item, false);
         pManager.AddTextParameter("Overrides", "OVR", "Optional: list of override tokens from GH Dark Mode Override (same-key tokens replace built-in dark defaults).", GH_ParamAccess.list);
-        pManager.AddBooleanParameter("R", "Reset", "True = reset Grasshopper GUI to factory defaults (deletes grasshopper_gui.xml). Restart Grasshopper after running.", GH_ParamAccess.item, false);
+        pManager.AddBooleanParameter("Reset", "R", "True = reset Grasshopper GUI to factory defaults (deletes grasshopper_gui.xml). Restart Grasshopper after running.", GH_ParamAccess.item, false);
         pManager.AddBooleanParameter("Invert", "I", "Debug action: invert all colors in grasshopper_gui.xml (including background).", GH_ParamAccess.item, false);
-        pManager.AddBooleanParameter("Debug", "D", "Debug action: assign very distinct test colors to all XML colors except background.", GH_ParamAccess.item, false);
+        // Debug color transform was removed from the UI for now; re-add a BooleanParameter here to restore it.
 
         pManager[1].Optional = true;
         pManager[3].Optional = true;
-        pManager[4].Optional = true;
     }
 
     protected override void RegisterOutputParams(GH_OutputParamManager pManager)
     {
-        pManager.AddTextParameter("Out", "Out", "Status message (route to Panel to see full text).", GH_ParamAccess.item);
+        pManager.AddTextParameter("Out", "Out", "Status and, after dark apply, the full merged override list (route to Panel).", GH_ParamAccess.item);
     }
 
     protected override void SolveInstance(IGH_DataAccess da)
@@ -78,11 +84,9 @@ public class GHDarkModeComponent : GH_Component
         bool invert = false;
         da.GetData(3, ref invert);
 
-        bool debug = false;
-        da.GetData(4, ref debug);
-
         if (reset)
         {
+            _lastModeWasDark = false;
             try
             {
                 string info = ResetOrRestoreBaseline();
@@ -109,17 +113,10 @@ public class GHDarkModeComponent : GH_Component
             // Debug transforms have priority over mode toggle.
             if (invert)
             {
-                int changed = TransformAllXmlColors(ColorTransformMode.InvertAll);
+                _lastModeWasDark = false;
+                int changed = TransformAllXmlColorsInvert();
                 Message = "Invert";
                 da.SetData(0, $"Invert applied to {changed} XML color entries. Restart Grasshopper or reopen the definition to see changes.");
-                return;
-            }
-
-            if (debug)
-            {
-                int changed = TransformAllXmlColors(ColorTransformMode.DebugDistinctNoBackground);
-                Message = "Debug";
-                da.SetData(0, $"Debug colors applied to {changed} XML color entries (background preserved). Restart Grasshopper or reopen the definition to see changes.");
                 return;
             }
 
@@ -132,14 +129,17 @@ public class GHDarkModeComponent : GH_Component
                 GH_Skin.SaveSkin();
 
                 List<XmlColorOverride> merged = MergeBuiltinAndModular(BuiltInDarkModeXmlColorOverrides, modularOverrides);
-                int applied = ApplyXmlColorOverrides(merged);
-                da.SetData(0, BuildStatusMessage("Dark Mode applied.", applied));
+                merged.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
+                (int applied, List<string> missing) = ApplyXmlColorOverrides(merged);
+                _lastModeWasDark = true;
+                da.SetData(0, BuildDarkApplyMessage("Dark Mode applied.", applied, merged, missing));
             }
             else
             {
                 RestoreBaselineSkinOrFallbackLight();
                 Message = "Light";
-                da.SetData(0, BuildStatusMessage("Reverted to baseline (pre-dark) skin.", 0));
+                _lastModeWasDark = false;
+                da.SetData(0, BuildLightRevertMessage());
                 GH_Skin.SaveSkin();
             }
         }
@@ -581,12 +581,47 @@ public class GHDarkModeComponent : GH_Component
         return Color.FromArgb(a, r, g, b);
     }
 
-    private static string BuildStatusMessage(string prefix, int xmlKeysPatched)
+    private static string BuildLightRevertMessage()
     {
-        string tail = xmlKeysPatched > 0
-            ? $" XML color keys patched: {xmlKeysPatched} (built-in defaults plus any OVR tokens)."
-            : string.Empty;
-        return $"{prefix} Restart Grasshopper or reopen the definition to see changes.{tail}";
+        return "Reverted to baseline (pre-dark) skin. Restart Grasshopper or reopen the definition to see changes.";
+    }
+
+    private static string BuildDarkApplyMessage(
+        string prefix,
+        int patchedCount,
+        IReadOnlyList<XmlColorOverride> mergeOrder,
+        IReadOnlyList<string> missingKeys)
+    {
+        StringBuilder sb = new();
+        sb.Append(prefix);
+        sb.Append(" Restart Grasshopper or reopen the definition to see changes.");
+        sb.AppendLine();
+        sb.Append($"XML color keys written: {patchedCount}");
+        if (missingKeys.Count > 0)
+        {
+            sb.Append(" — not found in XML (skipped): ");
+            sb.Append(string.Join(", ", missingKeys));
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Overrides (built-in + OVR, resolved key → ARGB):");
+        foreach (XmlColorOverride o in mergeOrder)
+        {
+            Color c = o.Value;
+            sb.Append("  • ");
+            sb.Append(o.Name);
+            sb.Append(" → A=");
+            sb.Append(c.A);
+            sb.Append(" R=");
+            sb.Append(c.R);
+            sb.Append(" G=");
+            sb.Append(c.G);
+            sb.Append(" B=");
+            sb.Append(c.B);
+            sb.AppendLine();
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     private static bool TryParseOverrideToken(string token, out XmlColorOverride ov)
@@ -615,13 +650,7 @@ public class GHDarkModeComponent : GH_Component
         return true;
     }
 
-    private enum ColorTransformMode
-    {
-        InvertAll,
-        DebugDistinctNoBackground
-    }
-
-    private static int TransformAllXmlColors(ColorTransformMode mode)
+    private static int TransformAllXmlColorsInvert()
     {
         string settingsFolder = GetSettingsFolderOrThrow();
         string guiPath = Path.Combine(settingsFolder, "grasshopper_gui.xml");
@@ -631,11 +660,9 @@ public class GHDarkModeComponent : GH_Component
         XDocument doc = XDocument.Load(guiPath);
         XElement[] items = doc.Descendants("item").ToArray();
         int changed = 0;
-        int debugIndex = 0;
 
         foreach (XElement item in items)
         {
-            string name = ((string?)item.Attribute("name")) ?? string.Empty;
             XElement? argb = item.Element("ARGB");
             if (argb is null)
                 continue;
@@ -643,21 +670,7 @@ public class GHDarkModeComponent : GH_Component
             if (!TryParseArgb(argb.Value, out Color original))
                 continue;
 
-            Color updated;
-            switch (mode)
-            {
-                case ColorTransformMode.InvertAll:
-                    updated = Color.FromArgb(original.A, 255 - original.R, 255 - original.G, 255 - original.B);
-                    break;
-                case ColorTransformMode.DebugDistinctNoBackground:
-                    if (IsBackgroundColorKey(name))
-                        continue;
-                    updated = DebugPalette(debugIndex++, original.A);
-                    break;
-                default:
-                    continue;
-            }
-
+            Color updated = Color.FromArgb(original.A, 255 - original.R, 255 - original.G, 255 - original.B);
             argb.Value = $"{updated.A};{updated.R};{updated.G};{updated.B}";
             changed++;
         }
@@ -668,10 +681,11 @@ public class GHDarkModeComponent : GH_Component
         return changed;
     }
 
-    private static int ApplyXmlColorOverrides(List<XmlColorOverride> overrides)
+    private static (int Patched, List<string> MissingKeys) ApplyXmlColorOverrides(List<XmlColorOverride> overrides)
     {
+        List<string> missing = new();
         if (overrides.Count == 0)
-            return 0;
+            return (0, missing);
 
         string settingsFolder = GetSettingsFolderOrThrow();
         string guiPath = Path.Combine(settingsFolder, "grasshopper_gui.xml");
@@ -686,11 +700,17 @@ public class GHDarkModeComponent : GH_Component
             string resolvedName = ResolveOverrideName(ov.Name);
             XElement? item = FindItemByName(doc, resolvedName);
             if (item is null)
+            {
+                missing.Add(resolvedName);
                 continue;
+            }
 
             XElement? argb = item.Element("ARGB");
             if (argb is null)
+            {
+                missing.Add(resolvedName);
                 continue;
+            }
 
             argb.Value = $"{ov.Value.A};{ov.Value.R};{ov.Value.G};{ov.Value.B}";
             changed++;
@@ -701,7 +721,7 @@ public class GHDarkModeComponent : GH_Component
         // Reload only. Do not SaveSkin here: SaveSkin rewrites the full skin payload and can
         // unintentionally normalize fields beyond the explicitly patched XML keys.
         GH_Skin.LoadSkin();
-        return changed;
+        return (changed, missing);
     }
 
     private static string ResolveOverrideName(string keyOrName)
@@ -725,34 +745,6 @@ public class GHDarkModeComponent : GH_Component
         };
     }
 
-    private static bool IsBackgroundColorKey(string itemName)
-    {
-        // Keep background untouched in debug mode so the canvas remains readable.
-        return string.Equals(itemName, "canvas_backcolor", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(itemName, "canvas_monocolor", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static Color DebugPalette(int index, int alpha)
-    {
-        // High-contrast repeating palette for quickly identifying color key mappings.
-        Color[] palette =
-        {
-            Color.Magenta,
-            Color.Lime,
-            Color.Cyan,
-            Color.Orange,
-            Color.Yellow,
-            Color.BlueViolet,
-            Color.DeepPink,
-            Color.Aqua,
-            Color.Chartreuse,
-            Color.Coral
-        };
-
-        Color p = palette[index % palette.Length];
-        return Color.FromArgb(alpha, p.R, p.G, p.B);
-    }
-
     private static bool TryParseArgb(string raw, out Color color)
     {
         color = Color.Empty;
@@ -771,44 +763,5 @@ public class GHDarkModeComponent : GH_Component
 
         color = Color.FromArgb(a, r, g, b);
         return true;
-    }
-
-    private static class IconFactory
-    {
-        // Grasshopper expects a small (typically 24×24) bitmap for component icons.
-        // We generate it programmatically to avoid external assets and to keep the repo lightweight.
-        public static readonly Bitmap Moon24 = CreateMoonIcon24();
-
-        private static Bitmap CreateMoonIcon24()
-        {
-            const int size = 24;
-            Bitmap bmp = new(size, size);
-
-            using Graphics g = Graphics.FromImage(bmp);
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.Clear(Color.Transparent);
-
-            // Lucide-style crescent: draw a filled circle, then subtract a slightly offset circle.
-            Rectangle outer = new(3, 3, 18, 18);
-            using GraphicsPath path = new();
-            path.AddEllipse(outer);
-
-            // "Cut out" circle
-            Rectangle cut = new(8, 2, 18, 18);
-            using GraphicsPath cutPath = new();
-            cutPath.AddEllipse(cut);
-
-            using Region r = new(path);
-            r.Exclude(cutPath);
-
-            using SolidBrush brush = new(Color.FromArgb(255, 240, 240, 240));
-            g.FillRegion(brush, r);
-
-            // Subtle outline to read well on both light and dark component backgrounds.
-            using Pen pen = new(Color.FromArgb(120, 0, 0, 0), 1);
-            g.DrawPath(pen, path);
-
-            return bmp;
-        }
     }
 }

@@ -44,5 +44,11 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\skin-keys-manifest.json" LogicalName="GHDarkMode.Resources.skin-keys-manifest.json" />
+    <EmbeddedResource Include="..\..\icons\gh-darkmode-icon-moon-48.bmp">
+      <LogicalName>GHDarkMode.icon-moon-48.bmp</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\icons\gh-darkmode-icon-moon-gears-48.bmp">
+      <LogicalName>GHDarkMode.icon-moon-gears-48.bmp</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

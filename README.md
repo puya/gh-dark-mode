@@ -25,7 +25,7 @@ Grasshopper 1 plugin for **Mac** that toggles the Grasshopper GUI between **Dark
    ./scripts/build-and-install.sh
    ```
 3. **Restart Rhino and Grasshopper.** In **Params → Util** you’ll find **GH Dark Mode** and **GH Dark Mode Override**.
-4. **Use:** Wire **M** (bool). **M = true** applies dark mode; **M = false** restores the **baseline** snapshot from the first run. Optional **OVR** (from **GH Dark Mode Override**) patches XML colors on top of built-in dark defaults. **Out** reports status and how many XML keys were patched.
+4. **Use:** Wire **M** (bool). **M = true** applies dark mode; **M = false** restores the **baseline** snapshot from the first run. Optional **OVR** (from **GH Dark Mode Override**) patches XML colors on top of built-in dark defaults. **Out** reports status, write counts, and the merged override list after dark apply.
 
 Persistence uses `grasshopper_gui.xml` in the Grasshopper plugin data folder; the plugin also keeps `ghdarkmode_baseline_gui.xml` for restore. You may need to **restart Grasshopper** (or reopen the definition) for the canvas to fully refresh.
 
@@ -37,7 +37,7 @@ For component-level details see **[src/GHDarkMode/README.md](src/GHDarkMode/READ
 
 - [x] Dark/light via GH_Skin + baseline restore.
 - [x] Modular **GH Dark Mode Override** + **OVR** list (built-in dark XML defaults + optional patches).
-- [x] Debug: **Invert** / **Debug** XML color transforms for discovery.
+- [x] Debug: **Invert** XML color transform (assign-distinct-colors debug input removed from UI for now).
 - [x] Build outputs under `build/`, distributable `dist/GHDarkMode.gha`.
 
 See **REPLICATION_SPEC.md** and **docs/SDK_VERSION_AND_COMPATIBILITY.md** for details.
