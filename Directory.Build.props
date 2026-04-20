@@ -14,8 +14,8 @@
     so `yak build` infers the same number from the built .gha (McNeel Yak manifest docs).
   -->
   <PropertyGroup>
-    <Version>1.0.3</Version>
-    <!-- Avoid 1.0.3+gitsha in InformationalVersion so Grasshopper and Yak see a clean semver. -->
+    <Version>1.0.4</Version>
+    <!-- Avoid +gitsha suffix in InformationalVersion so Grasshopper and Yak see a clean semver. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
   <PropertyGroup>

@@ -9,7 +9,7 @@
 #   - gh auth login  (https://cli.github.com/)
 #
 # Usage:
-#   ./scripts/release-github.sh v1.0.3
+#   ./scripts/release-github.sh v1.0.4
 #   ./scripts/release-github.sh     # uses MSBuild <Version> (Directory.Build.props) via scripts/read-version.sh
 #
 # Bump version only in Directory.Build.props (<Version>) before a release; Yak uses manifest `version: $version`.

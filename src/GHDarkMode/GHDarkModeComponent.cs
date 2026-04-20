@@ -428,6 +428,8 @@ public class GHDarkModeComponent : GH_Component
     /// </summary>
     private static readonly XmlColorOverride[] BuiltInDarkModeXmlColorOverrides =
     {
+        // Matches GH_Skin.group_back / darkBg2 in ApplyDarkThemeBasedOnBaseline (group chrome on dark canvas).
+        new("group_backcolor", Color.FromArgb(255, 42, 42, 46)),
         new("normal.std.fill", Color.FromArgb(255, 87, 87, 87)),
         new("hidden.sel.fill", Color.FromArgb(255, 113, 7, 184)),
         new("normal.sel.fill", Color.FromArgb(255, 118, 45, 161)),
